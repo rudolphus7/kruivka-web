@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Inter:wght@400;700;900&display=swap');
+
+:root {
+  --military-green: #4b5320;
+  --lamp-on: #00e676;
+  --lamp-red: #ff1744;
+  --lamp-yellow: #ffea00;
+  --text-digital: #c6ff00;
+  --paper: #d7ccc8;
+  --stamp-red: #b71c1c;
+  --cyber-black: #121212;
+  --glass-dark: rgba(30, 30, 30, 0.85);
+  --neon-amber: #ffc107;
+  --tactical-green: #4caf50;
+  --text-white: #e0e0e0;
+  --text-gray: #9e9e9e;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--cyber-black);
+  color: var(--text-white);
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+.kruivka-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.9));
+  z-index: -1;
+}
+
+.glass-card {
+  background: var(--glass-dark);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  padding: 24px;
+}
+
+.digital-text {
+  font-family: 'Roboto Mono', monospace;
+  color: var(--text-digital);
+  text-shadow: 0 0 5px var(--text-digital);
+}
+
+.btn-tactical {
+  background: var(--tactical-green);
+  color: black;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.btn-tactical:hover {
+  filter: brightness(1.2);
+  transform: translateY(-2px);
+}
+
+.btn-amber {
+  background: var(--neon-amber);
+}
+
+.input-tactical {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: white;
+  padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.input-tactical:focus {
+  border-color: var(--neon-amber);
+  outline: none;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.pulse {
+  animation: pulse 0.8s infinite alternate ease-in-out;
+}
