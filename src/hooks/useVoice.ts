@@ -13,6 +13,20 @@ export const useVoice = (roomId: string) => {
         const initAgora = async () => {
             client.current = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
+            // Add event listeners for remote users
+            client.current.on("user-published", async (user, mediaType) => {
+                await client.current!.subscribe(user, mediaType);
+                if (mediaType === "audio") {
+                    user.audioTrack?.play();
+                }
+            });
+
+            client.current.on("user-unpublished", (user) => {
+                if (user.audioTrack) {
+                    user.audioTrack.stop();
+                }
+            });
+
             try {
                 await client.current.join(APP_ID, roomId, null, null);
                 localTrack.current = await AgoraRTC.createMicrophoneAudioTrack();
