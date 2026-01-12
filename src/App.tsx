@@ -1,4 +1,4 @@
-import { useState, useEffect, CSSProperties } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import Lobby from './components/Lobby';
 import GameTable from './components/GameTable';
 import { useGame } from './hooks/useGame';
