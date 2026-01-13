@@ -122,7 +122,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
     const isMobile = width < 768;
 
     // Position Logic
-    const positions = isMobile ? MOBILE_POSITIONS_TRUSTED : DESKTOP_POSITIONS;
+    const positions = isMobile ? MOBILE_POSITIONS : DESKTOP_POSITIONS;
 
     const [selectedForNomination, setSelectedForNomination] = useState<string | null>(null);
     const [nkvdSelection, setNkvdSelection] = useState<string[]>([]);
