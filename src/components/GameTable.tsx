@@ -374,7 +374,6 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                                 isNkvdTarget={isCurrentNkvdTarget}
 
                                 votesReceived={voteCounts[p.userId] || 0}
-                                roleColor={roleInfo.color}
                                 roleName={roleInfo.name}
                                 onClick={() => handlePlayerClick(p)}
                             />
@@ -525,7 +524,6 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                                 isMyTarget={false}
                                 isNkvdTarget={false}
                                 votesReceived={0}
-                                roleColor={room.winner === "UPA" ? "#4caff0" : "#d32f2f"}
                                 roleName={room.winner === "UPA" ? "УПА" : "НКВС"}
                                 onClick={() => { }}
                             />
