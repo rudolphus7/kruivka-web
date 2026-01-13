@@ -16,21 +16,20 @@ const DESKTOP_POSITIONS = [
     { x: 75, y: 75 }, { x: 60, y: 85 }
 ];
 
-// Mobile: Scaled Oval (classic circle but smaller cards managed via CSS scale)
-// Positions along the edges of the screen
+// Mobile: Scaled Oval (Compressed to Safe Zone)
+// "Me" is lifted to 72% to clear the footer area completely
 const MOBILE_POSITIONS = [
-    { x: 50, y: 76 }, // 1 (Me) - Lifted from 88 to 76
-    { x: 20, y: 68 }, // 2 - Lifted and spread left
-    { x: 5, y: 54 }, // 3
-    { x: 10, y: 30 }, // 4
-    { x: 30, y: 14 }, // 5
-    { x: 50, y: 10 }, // 6 - Top Center
-    { x: 70, y: 14 }, // 7
-    { x: 90, y: 30 }, // 8
-    { x: 95, y: 54 }, // 9
-    { x: 80, y: 68 }  // 10 - Lifted and spread right
+    { x: 50, y: 72 }, // 1 (Me)
+    { x: 20, y: 64 }, // 2
+    { x: 8, y: 45 }, // 3
+    { x: 12, y: 25 }, // 4
+    { x: 35, y: 12 }, // 5
+    { x: 50, y: 10 }, // 6 (Top)
+    { x: 65, y: 12 }, // 7
+    { x: 88, y: 25 }, // 8
+    { x: 92, y: 45 }, // 9
+    { x: 80, y: 64 }  // 10
 ];
-
 
 interface GameTableProps {
     room: GameRoom;
@@ -53,6 +52,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
     const [timeLeft, setTimeLeft] = useState(30);
     const [showShotAnimation, setShowShotAnimation] = useState(false);
     const [warningMessage, setWarningMessage] = useState<string | null>(null);
+    const [showInfoToast, setShowInfoToast] = useState(false);
 
     // --- PLAYERS LIST ---
     const playersList = useMemo(() => {
@@ -221,12 +221,17 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         else muteMic(true);
     }, [isMyTurn, muteMic]);
 
+    // FIXED: Local state for immediate info message handling (3s)
     useEffect(() => {
         if (room.infoMessage) {
+            setShowInfoToast(true);
             const timer = setTimeout(() => {
+                setShowInfoToast(false);
                 clearInfoMessage(room.roomId);
             }, 3000);
             return () => clearTimeout(timer);
+        } else {
+            setShowInfoToast(false);
         }
     }, [room.infoMessage, room.roomId, clearInfoMessage]);
 
@@ -246,22 +251,14 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
 
         if (isMe) return getRoleDetails(player.role);
 
-        // BUG FIX: Hide dead players' roles DURING NIGHT (to prevent spoilers while roulette is spinning)
-        // Only show if it's NOT night, or if they died in previous rounds (not this night).
-        // For simplicity, we just hide all non-self roles at night in Open mode too, unless they are teammates.
-        // Actually, if they are dead, they stay dead. But "newly killed" ones should wait.
+        // BUG FIX: Hide dead players' roles DURING NIGHT
         const isNight = room.phase === 'night' || room.phase === 'night_zero' || room.phase === 'night_planning';
-
         if (!player.alive) {
-            // In Open mode, we usually see them. BUT if it's the night they just died, we shouldn't see it YET.
-            // Since we don't track "time of death" easily, we'll hide ALL dead players' roles for enemies during NIGHT phase.
-            // This adds suspension.
             if (isNight && room.gameMode === 'open') {
                 return { name: "", color: "#43A047" }; // Hide
             }
             return getRoleDetails(player.role);
         }
-
         if (isMeNKVD && isTargetNKVD) return getRoleDetails(player.role);
         return { name: "", color: "#43A047" };
     };
@@ -334,8 +331,9 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
     }[room.phase] || room.phase.toUpperCase();
 
     // --- RENDER ---
+    // Key Change: h-[100dvh] for mobile browsers
     return (
-        <div className={`theme-kruivka w-full h-screen overflow-hidden flex flex-col items-center justify-center p-0 transition-colors duration-200 ${showShotAnimation ? 'bg-red-900/40' : ''}`}>
+        <div className={`theme-kruivka w-full h-[100dvh] overflow-hidden flex flex-col items-center justify-center p-0 transition-colors duration-200 ${showShotAnimation ? 'bg-red-900/40' : ''}`}>
 
             <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
@@ -391,7 +389,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                 })}
             </div>
 
-            {/* TOP BAR - SHOW ONLY IN LOBBY */}
+            {/* TOP BAR - ONLY IN LOBBY */}
             {room.phase === 'lobby' && (
                 <div className="absolute top-4 left-0 right-0 flex justify-center z-20">
                     <div className="bg-[#d7ccc8] border-2 border-[#5d4037] px-6 py-2 shadow-lg transform rotate-1 flex items-center gap-6">
@@ -408,8 +406,8 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                 </div>
             )}
 
-            {/* INFO MESSAGE */}
-            {room.infoMessage && !room.winner && (
+            {/* INFO MESSAGE - MOVED HIGHER AND AUTO-HIDES */}
+            {showInfoToast && !room.winner && (
                 <div className="absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 animate-in fade-in zoom-in duration-300 z-50 pointer-events-none">
                     <div className="bg-[#fff9c4]/90 backdrop-blur-sm border border-[#fbc02d] p-4 shadow-xl transform -rotate-1 relative rounded-lg">
                         <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-red-800 border-2 border-white flex items-center justify-center text-white font-bold text-xs shadow">!</div>
@@ -437,8 +435,8 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                 </div>
             )}
 
-            {/* FOOTER PANEL */}
-            <div className="kruivka-panel absolute bottom-0 left-0 right-0 p-3 min-h-[80px] z-50 flex items-center justify-between gap-2 shadow-[0_-10px_40px_rgba(0,0,0,0.9)]">
+            {/* FOOTER PANEL - FIXED BOTTOM & HIGH Z-INDEX */}
+            <div className="kruivka-panel fixed bottom-0 left-0 right-0 p-3 min-h-[80px] z-[200] flex items-center justify-between gap-2 shadow-[0_-10px_40px_rgba(0,0,0,0.9)] pb-safe">
 
                 <div className="flex flex-col flex-1 min-w-0">
                     <span className="text-[#8d6e63] text-[9px] font-bold tracking-widest uppercase">ОПЕРАЦІЯ</span>
@@ -447,9 +445,6 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                     </span>
                 </div>
 
-                {/* VISIBLE-BUT-DISABLED SHOOT BUTTON FOR NKVD */}
-                {/* User suggested: Button always available (visible) but effect restricted to roulette timing */}
-                {/* Actually, for better UX, we'll keep it hidden for peaceful, but for NKVD valid. */}
                 <div className="flex-shrink-0 flex gap-2">
                     {room.status === 'lobby' && amIHost && (
                         <>
@@ -464,8 +459,6 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                         </>
                     )}
 
-                    {/* SHOOT BUTTON - Only for Mafia/Don, and only clicks when allowed */}
-                    {/* Visual feedback: Pulse when ready to shoot */}
                     {room.phase === 'night' && (myPlayer?.role === 'mafia' || myPlayer?.role === 'don') && (
                         <button
                             disabled={!canShootNow}
