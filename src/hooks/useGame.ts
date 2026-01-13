@@ -222,11 +222,14 @@ export const useGame = () => {
             updates.wasNightKill = false;
         }
 
+        const sortedPlayers = [...players].sort((a, b) => a.userId.localeCompare(b.userId));
+        const firstAlive = sortedPlayers.findIndex(p => p.alive && p.userId !== killTarget); // killTarget is about to be dead technically if killed.
+
         updates.phase = "day_discussion";
         updates.dayNumber = (roomData.dayNumber || 1) + 1;
         updates.nightActions = null;
         updates.planIndex = (roomData.planIndex || 0) + 1;
-        updates.speakerIndex = 0;
+        updates.speakerIndex = firstAlive !== -1 ? firstAlive : 0;
         updates.wasNightKill = wasNightKill;
         updates.infoMessage = msg;
 
@@ -240,8 +243,17 @@ export const useGame = () => {
 
     const nominatePlayer = async (roomId: string, nominatorId: string, targetId: string, currentNominations: Record<string, string>) => {
         // Enforce: One Player, One Nomination
-        if (!currentNominations || !currentNominations[nominatorId]) {
-            await set(ref(database, `rooms/${roomId}/nominations/${nominatorId}`), targetId);
+        // Also validation: Target must be alive!
+        const roomRef = ref(database, `rooms/${roomId}`);
+        const snapshot = await get(roomRef);
+        if (snapshot.exists()) {
+            const room = snapshot.val();
+            const target = room.players[targetId];
+            if (!target || !target.alive) return; // Do not allow nominating dead people
+
+            if (!currentNominations || !currentNominations[nominatorId]) {
+                await set(ref(database, `rooms/${roomId}/nominations/${nominatorId}`), targetId);
+            }
         }
     };
 
@@ -322,11 +334,15 @@ export const useGame = () => {
         }
 
         const nextPhase = planIndex >= nkvdPlanSize ? "night_planning" : "night";
+
+        const sortedPlayers = [...players].sort((a, b) => a.userId.localeCompare(b.userId));
+        const firstAlive = sortedPlayers.findIndex(p => p.alive && p.userId !== deadId);
+
         await update(ref(database, `rooms/${roomId}`), {
             phase: nextPhase,
             nominations: null,
             votes: null,
-            speakerIndex: 0,
+            speakerIndex: firstAlive !== -1 ? firstAlive : 0,
             infoMessage: msg
         });
 
@@ -399,7 +415,7 @@ export const useGame = () => {
             nkvdPlan: targets,
             phase: 'day_discussion',
             dayNumber: 1,
-            speakerIndex: 0,
+            speakerIndex: 0, // Day 1 always starts at 0 (all alive roughly, or handled by logic)
             wasNightKill: false,
             infoMessage: "Ранок настав. Починаємо обговорення."
         };

@@ -507,12 +507,64 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
                 </div>
             </div>
 
-            {room.infoMessage && (
+            {room.infoMessage && !room.winner && (
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm px-4 animate-in fade-in zoom-in duration-300 z-50">
                     <div className="bg-[#EFEBE9] border-2 border-black p-6 shadow-2xl relative">
                         <div className="absolute -top-4 left-4 bg-red-600 text-white px-3 py-1 text-[10px] font-black">ТЕРМІНОВО</div>
                         <h2 className="text-red-600 text-2xl font-black mb-4">ДОСЬЄ</h2>
                         <p className="text-black font-bold text-center border-t border-black pt-4">{room.infoMessage}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Game Over Modal */}
+            {room.status === 'finished' && (
+                <div className="absolute inset-0 bg-black/90 z-[60] flex flex-col items-center justify-center p-6 animate-in fade-in duration-1000">
+                    <div className="max-w-md w-full text-center space-y-8">
+                        <div className="space-y-2">
+                            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase glitch-text">
+                                {room.winner === "UPA" ? "ПЕРЕМОГА УПА" : "ПЕРЕМОГА НКВС"}
+                            </h1>
+                            <p className="text-xl text-gray-400 font-mono tracking-widest">
+                                {room.winner === "UPA" ? "ВОРОГІВ ЗНИЩЕНО" : "ПОВСТАННЯ ПРИДУШЕНО"}
+                            </p>
+                        </div>
+
+                        <div className="p-6 border border-white/10 bg-white/5 rounded-2xl backdrop-blur-sm">
+                            <PlayerNode
+                                player={{
+                                    userId: "WINNER",
+                                    name: room.winner === "UPA" ? "СЛАВА УКРАЇНІ" : "РАДЯНСЬКА ВЛАДА",
+                                    role: room.winner === "UPA" ? "civilian" : "don",
+                                    alive: true,
+                                    ready: true,
+                                    message: "",
+                                    knownEnemyId: null
+                                }}
+                                isMe={false}
+                                isSpeaking={false}
+                                isRouletteTarget={false}
+                                isSelected={false}
+                                isNkvdTarget={false}
+                                votesReceived={0}
+                                roleColor={room.winner === "UPA" ? "#43A047" : "#D32F2F"}
+                                roleName={room.winner === "UPA" ? "ГЕРОЯМ СЛАВА" : "ОКУПАНТИ"}
+                                onClick={() => { }}
+                            />
+                            <div className="mt-4 text-sm text-gray-500">
+                                {room.infoMessage}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3 w-full max-w-xs mx-auto">
+                            <button
+                                onClick={() => leaveRoom(room.roomId)}
+                                className="btn-tactical bg-gray-700 hover:bg-gray-600 w-full"
+                            >
+                                <LogOut className="inline mr-2" size={18} />
+                                ГОЛОВНЕ МЕНЮ
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
