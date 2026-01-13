@@ -289,10 +289,7 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
 
         if (isMyTurn && p.alive && p.userId !== myUserId) setSelectedForNomination(p.userId);
         if (room.phase === 'day_voting' && candidatesList.includes(p.userId) && myPlayer?.alive) voteForCandidate(room.roomId, p.userId);
-        if (room.phase === 'night' && (myPlayer?.role === 'mafia' || myPlayer?.role === 'don')) {
-            handleShot(p.userId);
-            setSelectedNightTarget(p.userId);
-        }
+        // Removed click-to-shoot for NKVD. Now only button works.
     };
 
     const statusText = {
@@ -408,7 +405,7 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
                                 if (canShootNow) {
                                     const currentTarget = room.nkvdPlan?.[room.planIndex];
                                     if (currentTarget) {
-                                        sendNightAction(room.roomId, currentTarget);
+                                        handleShot(currentTarget); // Use handleShot for animation
                                         setSelectedNightTarget(currentTarget);
                                     }
                                 }
