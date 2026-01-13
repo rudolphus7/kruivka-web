@@ -29,9 +29,9 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
     isNominated, isSheriffChecked, isDoctorHealed, isMyTarget, isNkvdTarget,
     votesReceived, roleName, gameMode = "open", onClick
 }) => {
-    // LOGIC: Show Face if: It's ME OR (The player is DEAD AND Game Mode is OPEN).
+    // LOGIC: Show Face if: It's ME OR (The player is DEAD AND Game Mode is OPEN) OR (We explicitly know the role via roleName).
     // In Closed mode, dead players remain hidden (Back/Shirt).
-    const showFace = isMe || (!player.alive && gameMode === 'open');
+    const showFace = isMe || (!player.alive && gameMode === 'open') || !!roleName;
 
     // Visual highlights - MOVED TO SEPARATE DIV
     // We construct the class string for the overlay, NOT the faces
