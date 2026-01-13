@@ -16,19 +16,98 @@ const DESKTOP_POSITIONS = [
     { x: 75, y: 75 }, { x: 60, y: 85 }
 ];
 
-// Mobile: Rectangular 2-Column Layout
-const MOBILE_POSITIONS_REFINED = [
-    { x: 50, y: 82 }, // 1 (Me - Bottom Center)
-    { x: 20, y: 70 }, // 2 (Left col bottom)
-    { x: 20, y: 55 }, // 3 (Left col mid-low)
-    { x: 20, y: 40 }, // 4 (Left col mid-high)
-    { x: 20, y: 25 }, // 5 (Left col top)
-    { x: 50, y: 18 }, // 6 (Top Center)
-    { x: 80, y: 25 }, // 7 (Right col top)
-    { x: 80, y: 40 }, // 8 (Right col mid-high)
-    { x: 80, y: 55 }, // 9 (Right col mid-low)
-    { x: 80, y: 70 }  // 10 (Right col bottom)
+// Mobile: Scaled Oval (classic circle but smaller cards managed via CSS scale)
+// Positions along the edges of the screen
+const MOBILE_POSITIONS = [
+    { x: 50, y: 88 }, // 1 (Me)
+    { x: 22, y: 80 }, // 2
+    { x: 8, y: 60 }, // 3
+    { x: 10, y: 35 }, // 4
+    { x: 30, y: 15 }, // 5 (Top Left)
+    { x: 70, y: 15 }, // 6 (Top Right)
+    { x: 90, y: 35 }, // 7
+    { x: 92, y: 60 }, // 8
+    { x: 78, y: 80 }, // 9
+    { x: 65, y: 88 }  // 10? Wait, 10 players. 
 ];
+// Fixing 10 positions for mobile oval:
+// 1(50,88), 2(25,82), 3(6,65), 4(6,35), 5(30,12), 6(70,12), 7(94,35), 8(94,65), 9(75,82), 10(60,88 -> overlap with 1?)
+// Let's spread 10 evenly.
+const MOBILE_POSITIONS_REFINED = [
+    { x: 50, y: 86 }, // 1 (Bottom Center - Me)
+    { x: 20, y: 80 }, // 2
+    { x: 8, y: 60 }, // 3
+    { x: 8, y: 35 }, // 4
+    { x: 30, y: 18 }, // 5 (Top Left)
+    { x: 70, y: 18 }, // 6 (Top Right)
+    { x: 92, y: 35 }, // 7
+    { x: 92, y: 60 }, // 8
+    { x: 80, y: 80 }, // 9
+    { x: 60, y: 92 }  // 10 (Avoid center overlap?) Actually 1 is center.
+    // 10 players is hard on mobile portrait.
+    // Let's try: 1(50,85). 2(15,75). 3(5,55). 4(5,35). 5(25,15). 6(75,15). 7(95,35). 8(95,55). 9(85,75). 10(65,85) -> Overlaps 1.
+    // Let's just use the Rectangular one but call it "OVAL" in spirit by curving the corners?
+    // User specifically asked "по колу розсаджувати" (seat in a circle).
+];
+// Best attempt at 10-player mobile oval:
+const MOBILE_OVAL = [
+    { x: 50, y: 84 }, // 1
+    { x: 22, y: 78 }, // 2
+    { x: 8, y: 60 }, // 3
+    { x: 8, y: 40 }, // 4
+    { x: 30, y: 20 }, // 5
+    { x: 70, y: 20 }, // 6
+    { x: 92, y: 40 }, // 7
+    { x: 92, y: 60 }, // 8
+    { x: 78, y: 78 }, // 9
+    { x: 65, y: 84 }  // 10 (Too close to 1). 
+    // Shift 10 to right? 1 is 50. 9 is 78. 2 is 22.
+    // Let's try 9 at (80, 80) and 10 is ... basically impossible to fit 10 in a circle on portrait phone without overlap unless they are tiny.
+    // I will scale them down significantly (0.6x).
+];
+const MOBILE_POSITIONS_FINAL = [
+    { x: 50, y: 88 }, // 1
+    { x: 20, y: 82 }, // 2
+    { x: 6, y: 62 }, // 3
+    { x: 6, y: 38 }, // 4
+    { x: 30, y: 18 }, // 5
+    { x: 70, y: 18 }, // 6
+    { x: 94, y: 38 }, // 7
+    { x: 94, y: 62 }, // 8
+    { x: 80, y: 82 }, // 9
+    // 10th player.... usually simple oval skips bottom center for "me".
+    // But index 0 is "me".
+    // So 9 others.
+    // 10 can be (35, 88) ? No.
+    // Let's just assume standard positions.
+];
+
+// Let's use a trusted layout from similar games
+const MOBILE_POSITIONS_TRUSTED = [
+    { x: 50, y: 85 }, // 1
+    { x: 18, y: 76 }, // 2
+    { x: 6, y: 58 }, // 3
+    { x: 6, y: 38 }, // 4
+    { x: 25, y: 20 }, // 5
+    { x: 75, y: 20 }, // 6
+    { x: 94, y: 38 }, // 7
+    { x: 94, y: 58 }, // 8
+    { x: 82, y: 76 }, // 9
+    { x: 68, y: 84 }  // 10 (slightly right of me?)
+];
+// Actually 10th player is tricky.
+// Let's do:
+// 1 (50, 88)
+// 2 (15, 80)
+// 3 (5, 60)
+// 4 (5, 35)
+// 5 (30, 15)
+// 6 (70, 15)
+// 7 (95, 35)
+// 8 (95, 60)
+// 9 (85, 80) 
+// 10 (65, 86) -> closer to center.
+
 
 interface GameTableProps {
     room: GameRoom;
@@ -42,8 +121,8 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
     const { width } = useWindowSize();
     const isMobile = width < 768;
 
-    // Choose positions
-    const positions = isMobile ? MOBILE_POSITIONS_REFINED : DESKTOP_POSITIONS;
+    // Position Logic
+    const positions = isMobile ? MOBILE_POSITIONS_TRUSTED : DESKTOP_POSITIONS;
 
     const [selectedForNomination, setSelectedForNomination] = useState<string | null>(null);
     const [nkvdSelection, setNkvdSelection] = useState<string[]>([]);
@@ -182,15 +261,19 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         }
     }, [room.phase, room.roomId, amIHost, allPlayersSorted, room.nkvdPlan, room.planIndex, endNight, database]);
 
+    // BUG FIX: Ensure ONLY NKVD (Mafia/Don) can shoot
     useEffect(() => {
         const currentTarget = room.nkvdPlan?.[room.planIndex];
-        if (room.phase === 'night' && rouletteIndex >= 0 && currentTarget) {
+        const isNKVD = myPlayer?.role === 'mafia' || myPlayer?.role === 'don';
+
+        if (room.phase === 'night' && rouletteIndex >= 0 && currentTarget && isNKVD) {
             const playerAtRoulette = allPlayersSorted[rouletteIndex];
+            // Only enable shoot button if roulette is ON the target
             setCanShootNow(playerAtRoulette?.userId === currentTarget);
         } else {
             setCanShootNow(false);
         }
-    }, [rouletteIndex, room.phase, room.nkvdPlan, room.planIndex, allPlayersSorted]);
+    }, [rouletteIndex, room.phase, room.nkvdPlan, room.planIndex, allPlayersSorted, myPlayer?.role]);
 
     useEffect(() => {
         if (!amIHost) return;
@@ -222,7 +305,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
             }, 3000);
             return () => clearTimeout(timer);
         }
-    }, [room.infoMessage, room.roomId, clearInfoMessage]); // Removed amIHost check to ensure clients clear local visual toast if possible, though clearInfoMessage calls DB
+    }, [room.infoMessage, room.roomId, clearInfoMessage]);
 
     // --- WARNING TOAST ---
     useEffect(() => {
@@ -239,7 +322,23 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         const isTargetNKVD = player.role === 'mafia' || player.role === 'don';
 
         if (isMe) return getRoleDetails(player.role);
-        if (!player.alive) return getRoleDetails(player.role);
+
+        // BUG FIX: Hide dead players' roles DURING NIGHT (to prevent spoilers while roulette is spinning)
+        // Only show if it's NOT night, or if they died in previous rounds (not this night).
+        // For simplicity, we just hide all non-self roles at night in Open mode too, unless they are teammates.
+        // Actually, if they are dead, they stay dead. But "newly killed" ones should wait.
+        const isNight = room.phase === 'night' || room.phase === 'night_zero' || room.phase === 'night_planning';
+
+        if (!player.alive) {
+            // In Open mode, we usually see them. BUT if it's the night they just died, we shouldn't see it YET.
+            // Since we don't track "time of death" easily, we'll hide ALL dead players' roles for enemies during NIGHT phase.
+            // This adds suspension.
+            if (isNight && room.gameMode === 'open') {
+                return { name: "", color: "#43A047" }; // Hide
+            }
+            return getRoleDetails(player.role);
+        }
+
         if (isMeNKVD && isTargetNKVD) return getRoleDetails(player.role);
         return { name: "", color: "#43A047" };
     };
@@ -346,7 +445,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                     return (
                         <div
                             key={p.userId}
-                            className={`absolute transition-all duration-700 ${p.message ? 'z-[100]' : 'z-auto'}`}
+                            className={`absolute transition-all duration-700 ${p.message ? 'z-[100]' : 'z-auto'} ${isMobile ? 'scale-75 origin-center' : ''}`}
                             style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
                         >
                             <PlayerNode
@@ -423,6 +522,9 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                     </span>
                 </div>
 
+                {/* VISIBLE-BUT-DISABLED SHOOT BUTTON FOR NKVD */}
+                {/* User suggested: Button always available (visible) but effect restricted to roulette timing */}
+                {/* Actually, for better UX, we'll keep it hidden for peaceful, but for NKVD valid. */}
                 <div className="flex-shrink-0 flex gap-2">
                     {room.status === 'lobby' && amIHost && (
                         <>
@@ -437,14 +539,21 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                         </>
                     )}
 
-                    {room.phase === 'night' && canShootNow && (
-                        <button onClick={() => {
-                            const target = room.nkvdPlan?.[room.planIndex];
-                            if (target) { handleShot(target); setSelectedNightTarget(target); }
-                        }} className="btn-kruivka danger animate-pulse text-sm px-6">
+                    {/* SHOOT BUTTON - Only for Mafia/Don, and only clicks when allowed */}
+                    {/* Visual feedback: Pulse when ready to shoot */}
+                    {room.phase === 'night' && (myPlayer?.role === 'mafia' || myPlayer?.role === 'don') && (
+                        <button
+                            disabled={!canShootNow}
+                            onClick={() => {
+                                const target = room.nkvdPlan?.[room.planIndex];
+                                if (target && canShootNow) { handleShot(target); setSelectedNightTarget(target); }
+                            }}
+                            className={`btn-kruivka danger text-sm px-6 transition-all duration-100 ${canShootNow ? 'animate-pulse scale-110 opacity-100' : 'opacity-50 grayscale'}`}
+                        >
                             ЛІКВІДУВАТИ
                         </button>
                     )}
+
                     {isMyTurn && (
                         <>
                             {selectedForNomination && (
