@@ -8,16 +8,49 @@ import { Mic, MicOff, LogOut } from 'lucide-react';
 import { ref, set } from 'firebase/database';
 import { database } from '../firebase';
 
-const POSITIONS = [
-    { x: 50, y: 80 }, { x: 30, y: 72 }, { x: 15, y: 55 }, { x: 22, y: 38 },
-    { x: 40, y: 25 }, { x: 60, y: 25 }, { x: 78, y: 32 }, { x: 86, y: 48 },
-    { x: 82, y: 65 }, { x: 68, y: 78 }
+import { useWindowSize } from '../hooks/useWindowSize';
+
+// Desktop: Wide Oval
+const DESKTOP_POSITIONS = [
+    { x: 50, y: 85 }, { x: 25, y: 75 }, { x: 10, y: 50 }, { x: 25, y: 25 },
+    { x: 40, y: 15 }, { x: 60, y: 15 }, { x: 75, y: 25 }, { x: 90, y: 50 },
+    { x: 75, y: 75 }, { x: 60, y: 85 }
 ];
+
+// Mobile: Vertically Stretched Oval (or 2 columns)
+// We push them to edges: Left column (x~10-20), Right column (x~80-90), Top/Bottom center
+const MOBILE_POSITIONS = [
+    { x: 50, y: 80 },  // 1 (Bottom Center - You)
+    { x: 15, y: 70 },  // 2 (Left Bottom)
+    { x: 15, y: 50 },  // 3 (Left Mid)
+    { x: 15, y: 30 },  // 4 (Left Top)
+    { x: 35, y: 15 },  // 5 (Top Left Center)
+    { x: 65, y: 15 },  // 6 (Top Right Center)
+    { x: 85, y: 30 },  // 7 (Right Top)
+    { x: 85, y: 50 },  // 8 (Right Mid)
+    { x: 85, y: 70 },  // 9 (Right Bottom)
+    { x: 65, y: 80 }   // 10 (Bottom Rightish?) -> Actually 10 players.
+];
+// Let's refine Mobile positions for 10 players to be symmetrical
+const MOBILE_POSITIONS_REFINED = [
+    { x: 50, y: 78 }, // 1 (Me)
+    { x: 18, y: 70 }, // 2
+    { x: 12, y: 52 }, // 3
+    { x: 18, y: 34 }, // 4
+    { x: 35, y: 20 }, // 5 (Top Left)
+    { x: 65, y: 20 }, // 6 (Top Right)
+    { x: 82, y: 34 }, // 7
+    { x: 88, y: 52 }, // 8
+    { x: 82, y: 70 }, // 9
+    { x: 65, y: 78 }  // 10
+];
+
 
 interface GameTableProps {
     room: GameRoom;
     onLeave: () => void;
 }
+
 
 const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
     const { myUserId, passTurn, nominatePlayer, voteForCandidate, startGame, clearInfoMessage, addBots, sendNightAction, setBotMessage, finalizeVoting, voteForBot, setNkvdPlan, endNight, appendDynamicPlan, leaveRoom } = useGame();
@@ -38,6 +71,13 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
 
     // -------------------------------
     const { isMuted, muteMic } = useVoice(room.roomId);
+    const { width } = useWindowSize();
+    const isMobile = width < 768; // Standard mobile breakpoint
+
+    // Choose specific positions based on array length (if < 10 players, standard oval might look weird, but for now fixed 10 is aim)
+    // We map 10 positions. If fewer players, they just fill the first N slots.
+    const positions = isMobile ? MOBILE_POSITIONS_REFINED : DESKTOP_POSITIONS;
+
 
     const [selectedForNomination, setSelectedForNomination] = useState<string | null>(null);
     const [nkvdSelection, setNkvdSelection] = useState<string[]>([]);
