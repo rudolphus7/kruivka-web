@@ -19,16 +19,16 @@ const DESKTOP_POSITIONS = [
 // Mobile: Scaled Oval (classic circle but smaller cards managed via CSS scale)
 // Positions along the edges of the screen
 const MOBILE_POSITIONS = [
-    { x: 50, y: 88 }, // 1 (Me)
-    { x: 22, y: 80 }, // 2
-    { x: 8, y: 60 }, // 3
-    { x: 10, y: 35 }, // 4
-    { x: 30, y: 15 }, // 5 (Top Left)
-    { x: 70, y: 15 }, // 6 (Top Right)
-    { x: 90, y: 35 }, // 7
-    { x: 92, y: 60 }, // 8
-    { x: 78, y: 80 }, // 9
-    { x: 65, y: 88 }  // 10
+    { x: 50, y: 76 }, // 1 (Me) - Lifted from 88 to 76
+    { x: 20, y: 68 }, // 2 - Lifted and spread left
+    { x: 5, y: 54 }, // 3
+    { x: 10, y: 30 }, // 4
+    { x: 30, y: 14 }, // 5
+    { x: 50, y: 10 }, // 6 - Top Center
+    { x: 70, y: 14 }, // 7
+    { x: 90, y: 30 }, // 8
+    { x: 95, y: 54 }, // 9
+    { x: 80, y: 68 }  // 10 - Lifted and spread right
 ];
 
 
