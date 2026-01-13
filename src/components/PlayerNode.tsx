@@ -19,7 +19,6 @@ interface PlayerNodeProps {
     isMyTarget: boolean;
     isNkvdTarget: boolean;
     votesReceived: number;
-    roleColor: string;
     roleName: string;
     onClick: () => void;
 }
@@ -41,7 +40,6 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
 
     // Role Image Mapping
     const getRoleImage = (role?: string) => {
-        // Normalize role string if necessary
         const r = role?.toLowerCase();
         switch (r) {
             case 'mafia': return nkvdImg;
@@ -57,10 +55,10 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
 
     return (
         <div
-            className="w-24 h-32 perspective-1000 relative group z-10 cursor-pointer"
+            className="w-24 h-36 perspective-1000 relative group z-10 cursor-pointer"
             onClick={onClick}
         >
-            {/* NKVD Target Overlay (Always on top of everything) */}
+            {/* NKVD Target Overlay */}
             {isNkvdTarget && (
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-600 z-[60] animate-ping opacity-75 pointer-events-none">
                     <Crosshair size={50} />
@@ -68,15 +66,16 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
             )}
 
             {/* FLIPPING CONTAINER */}
-            <div className={`w-full h-full relative transition-transform duration-700 transform-style-3d ${!showFace ? 'rotate-y-180' : ''}`}>
+            <div
+                className="w-full h-full relative transition-transform duration-700 transform-style-3d"
+                style={{ transform: !showFace ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
+            >
 
                 {/* --- FRONT FACE (ROLE / INFO) --- */}
-                {/* Added bg-[#e0e0e0] to ensure no transparency (fixes ghosting) */}
-                <div className={`absolute inset-0 w-full h-full backface-hidden bg-[#e0e0e0] border-2 border-gray-400 rounded-lg overflow-hidden flex flex-col ${showFace ? 'z-20' : 'z-10'} ${borderClass}`}>
+                <div className={`absolute inset-0 w-full h-full backface-hidden bg-[#e0e0e0] border-2 border-gray-400 rounded-lg overflow-hidden flex flex-col ${borderClass}`}>
 
                     {/* Role Image Area */}
-                    <div className="relative flex-1 bg-black">
-                        {/* If alive or me -> show the Role Image. */}
+                    <div className="relative flex-1 bg-black min-h-0">
                         <img src={roleImage} alt={roleName} className="w-full h-full object-cover" />
 
                         {!player.alive && (
@@ -89,15 +88,16 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
                         )}
                     </div>
 
-                    {/* Bottom Name Label */}
-                    <div className="bg-[#d7ccc8] py-1 text-center border-t border-gray-500 h-[22px] flex items-center justify-center">
-                        <p className="text-[10px] font-black text-[#3e2723] truncate px-1 leading-tight w-full">{player.name}</p>
+                    {/* Bottom Name Label - Increased padding and removed fixed height */}
+                    <div className="bg-[#d7ccc8] py-1.5 text-center border-t border-gray-500 shrink-0 flex items-center justify-center">
+                        <p className="text-[11px] font-black text-[#3e2723] truncate px-1 leading-tight w-full">{player.name}</p>
                     </div>
                 </div>
 
                 {/* --- BACK FACE (CARD SHIRT) --- */}
-                {/* Added bg-[#3e2723] to ensure solid background behind shirt */}
-                <div className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-lg overflow-hidden border-2 border-[#3e2723] shadow-md bg-[#3e2723] ${!showFace ? 'z-20' : 'z-10'} ${borderClass}`}>
+                <div className={`absolute inset-0 w-full h-full backface-hidden rounded-lg overflow-hidden border-2 border-[#3e2723] shadow-md bg-[#3e2723] ${borderClass}`}
+                    style={{ transform: 'rotateY(180deg)' }}> {/* Inline style for certainty */}
+
                     <img src={cardBack} alt="Card Back" className="w-full h-full object-cover" />
 
                     {/* Speaking Indicator on Back */}
@@ -115,10 +115,7 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
 
             </div>
 
-            {/* STATUS BADGES (FRONT ONLY - But rendered outside to be visible? No, attaches to front face logic typically. 
-                But for 3D flip, if we put them outside, they float. If inside front div, they hide on flip.
-                User wants to see statuses on the front (Role side).
-             */}
+            {/* STATUS BADGES (Front Side Logic) */}
             <div className={`absolute top-2 right-[-8px] flex flex-col gap-1 items-end pointer-events-none z-[60] transition-opacity duration-300 ${!showFace ? 'opacity-0' : 'opacity-100'}`}>
                 {votesReceived > 0 && (
                     <div className="bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-md border-2 border-white">
@@ -130,9 +127,9 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
                 {isDoctorHealed && <span className="k-stamp blue text-[8px] bg-green-100 shadow-sm">ЛІКУВАННЯ</span>}
             </div>
 
-            {/* MESSAGE BUBBLE - OUTSIDE TRANSFORM CONTAINER */}
+            {/* MESSAGE BUBBLE */}
             {player.message && (
-                <div className="absolute -top-16 left-1/2 -translate-x-1/2 z-[100] w-max max-w-[150px]">
+                <div className="absolute -top-20 left-1/2 -translate-x-1/2 z-[100] w-max max-w-[150px]">
                     <div className="bg-[#fff9c4] text-black p-3 rounded-xl shadow-xl border-2 border-[#fbc02d] text-xs font-mono font-bold leading-tight relative animate-in zoom-in duration-200">
                         "{player.message}"
                         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#fff9c4] border-b-2 border-r-2 border-[#fbc02d] transform rotate-45"></div>
