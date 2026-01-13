@@ -28,85 +28,8 @@ const MOBILE_POSITIONS = [
     { x: 90, y: 35 }, // 7
     { x: 92, y: 60 }, // 8
     { x: 78, y: 80 }, // 9
-    { x: 65, y: 88 }  // 10? Wait, 10 players. 
+    { x: 65, y: 88 }  // 10
 ];
-// Fixing 10 positions for mobile oval:
-// 1(50,88), 2(25,82), 3(6,65), 4(6,35), 5(30,12), 6(70,12), 7(94,35), 8(94,65), 9(75,82), 10(60,88 -> overlap with 1?)
-// Let's spread 10 evenly.
-const MOBILE_POSITIONS_REFINED = [
-    { x: 50, y: 86 }, // 1 (Bottom Center - Me)
-    { x: 20, y: 80 }, // 2
-    { x: 8, y: 60 }, // 3
-    { x: 8, y: 35 }, // 4
-    { x: 30, y: 18 }, // 5 (Top Left)
-    { x: 70, y: 18 }, // 6 (Top Right)
-    { x: 92, y: 35 }, // 7
-    { x: 92, y: 60 }, // 8
-    { x: 80, y: 80 }, // 9
-    { x: 60, y: 92 }  // 10 (Avoid center overlap?) Actually 1 is center.
-    // 10 players is hard on mobile portrait.
-    // Let's try: 1(50,85). 2(15,75). 3(5,55). 4(5,35). 5(25,15). 6(75,15). 7(95,35). 8(95,55). 9(85,75). 10(65,85) -> Overlaps 1.
-    // Let's just use the Rectangular one but call it "OVAL" in spirit by curving the corners?
-    // User specifically asked "по колу розсаджувати" (seat in a circle).
-];
-// Best attempt at 10-player mobile oval:
-const MOBILE_OVAL = [
-    { x: 50, y: 84 }, // 1
-    { x: 22, y: 78 }, // 2
-    { x: 8, y: 60 }, // 3
-    { x: 8, y: 40 }, // 4
-    { x: 30, y: 20 }, // 5
-    { x: 70, y: 20 }, // 6
-    { x: 92, y: 40 }, // 7
-    { x: 92, y: 60 }, // 8
-    { x: 78, y: 78 }, // 9
-    { x: 65, y: 84 }  // 10 (Too close to 1). 
-    // Shift 10 to right? 1 is 50. 9 is 78. 2 is 22.
-    // Let's try 9 at (80, 80) and 10 is ... basically impossible to fit 10 in a circle on portrait phone without overlap unless they are tiny.
-    // I will scale them down significantly (0.6x).
-];
-const MOBILE_POSITIONS_FINAL = [
-    { x: 50, y: 88 }, // 1
-    { x: 20, y: 82 }, // 2
-    { x: 6, y: 62 }, // 3
-    { x: 6, y: 38 }, // 4
-    { x: 30, y: 18 }, // 5
-    { x: 70, y: 18 }, // 6
-    { x: 94, y: 38 }, // 7
-    { x: 94, y: 62 }, // 8
-    { x: 80, y: 82 }, // 9
-    // 10th player.... usually simple oval skips bottom center for "me".
-    // But index 0 is "me".
-    // So 9 others.
-    // 10 can be (35, 88) ? No.
-    // Let's just assume standard positions.
-];
-
-// Let's use a trusted layout from similar games
-const MOBILE_POSITIONS_TRUSTED = [
-    { x: 50, y: 85 }, // 1
-    { x: 18, y: 76 }, // 2
-    { x: 6, y: 58 }, // 3
-    { x: 6, y: 38 }, // 4
-    { x: 25, y: 20 }, // 5
-    { x: 75, y: 20 }, // 6
-    { x: 94, y: 38 }, // 7
-    { x: 94, y: 58 }, // 8
-    { x: 82, y: 76 }, // 9
-    { x: 68, y: 84 }  // 10 (slightly right of me?)
-];
-// Actually 10th player is tricky.
-// Let's do:
-// 1 (50, 88)
-// 2 (15, 80)
-// 3 (5, 60)
-// 4 (5, 35)
-// 5 (30, 15)
-// 6 (70, 15)
-// 7 (95, 35)
-// 8 (95, 60)
-// 9 (85, 80) 
-// 10 (65, 86) -> closer to center.
 
 
 interface GameTableProps {
