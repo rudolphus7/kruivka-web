@@ -8,42 +8,125 @@ import { Mic, MicOff, LogOut } from 'lucide-react';
 import { ref, set } from 'firebase/database';
 import { database } from '../firebase';
 
-import { useWindowSize } from '../hooks/useWindowSize';
-
-// Desktop: Wide Oval
-const DESKTOP_POSITIONS = [
-    { x: 50, y: 85 }, { x: 25, y: 75 }, { x: 10, y: 50 }, { x: 25, y: 25 },
-    { x: 40, y: 15 }, { x: 60, y: 15 }, { x: 75, y: 25 }, { x: 90, y: 50 },
-    { x: 75, y: 75 }, { x: 60, y: 85 }
-];
-
-// Mobile: Vertically Stretched Oval (or 2 columns)
-// We push them to edges: Left column (x~10-20), Right column (x~80-90), Top/Bottom center
-const MOBILE_POSITIONS = [
-    { x: 50, y: 80 },  // 1 (Bottom Center - You)
-    { x: 15, y: 70 },  // 2 (Left Bottom)
-    { x: 15, y: 50 },  // 3 (Left Mid)
-    { x: 15, y: 30 },  // 4 (Left Top)
-    { x: 35, y: 15 },  // 5 (Top Left Center)
-    { x: 65, y: 15 },  // 6 (Top Right Center)
-    { x: 85, y: 30 },  // 7 (Right Top)
-    { x: 85, y: 50 },  // 8 (Right Mid)
-    { x: 85, y: 70 },  // 9 (Right Bottom)
-    { x: 65, y: 80 }   // 10 (Bottom Rightish?) -> Actually 10 players.
-];
-// Let's refine Mobile positions for 10 players to be symmetrical
+// Mobile: Rectangular 2-Column Layout to maximize space and avoid overlap
+// We place users in two vertical columns
 const MOBILE_POSITIONS_REFINED = [
-    { x: 50, y: 78 }, // 1 (Me)
-    { x: 18, y: 70 }, // 2
-    { x: 12, y: 52 }, // 3
-    { x: 18, y: 34 }, // 4
-    { x: 35, y: 20 }, // 5 (Top Left)
-    { x: 65, y: 20 }, // 6 (Top Right)
-    { x: 82, y: 34 }, // 7
-    { x: 88, y: 52 }, // 8
-    { x: 82, y: 70 }, // 9
-    { x: 65, y: 78 }  // 10
+    { x: 50, y: 82 }, // 1 (Me - Bottom Center)
+    { x: 20, y: 70 }, // 2 (Left col bottom)
+    { x: 20, y: 55 }, // 3 (Left col mid-low)
+    { x: 20, y: 40 }, // 4 (Left col mid-high)
+    { x: 20, y: 25 }, // 5 (Left col top)
+    { x: 50, y: 18 }, // 6 (Top Center)
+    { x: 80, y: 25 }, // 7 (Right col top)
+    { x: 80, y: 40 }, // 8 (Right col mid-high)
+    { x: 80, y: 55 }, // 9 (Right col mid-low)
+    { x: 80, y: 70 }  // 10 (Right col bottom)
 ];
+
+// ... (Desktop positions remain the same)
+
+// ...
+
+    return (
+        <div className={`theme-kruivka w-full h-screen overflow-hidden flex flex-col items-center justify-center p-0 transition-colors duration-200 ${showShotAnimation ? 'bg-red-900/40' : ''}`}>
+            {/* Dark overlay for mood */}
+            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+
+            {/* CENTRAL TIMER - MILITARY CHRONOMETER STYLE */}
+            {/* Placed in center of table, slightly above center to avoid covering center cards if any */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none flex flex-col items-center justify-center">
+                 <div className="w-24 h-24 rounded-full border-4 border-[#5d4037] bg-[#212121] shadow-[0_0_30px_rgba(0,0,0,0.8)] flex flex-col items-center justify-center relative">
+                     <div className="absolute inset-0 rounded-full border border-[#ffffff10]"></div>
+                     <span className="text-[10px] text-[#8d6e63] font-bold tracking-widest mb-1">ЧАС</span>
+                     <span className={`text-4xl font-mono font-black tracking-wider ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-[#ffcd38]'}`}>
+                         {timeLeft}
+                     </span>
+                 </div>
+            </div>
+
+            {/* Players Table Area */}
+            <div className="relative w-full h-full max-w-[1000px] max-h-[800px] mx-auto">
+                {playersList.map((p, i) => {
+                    // ... (mapping logic remains same)
+                    const pos = positions[i] || { x: 50, y: 50 };
+                    // ...
+                    return (
+                        <div
+                            key={p.userId}
+                            className={`absolute transition-all duration-700 ${p.message ? 'z-[100]' : 'z-auto'}`}
+                            style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
+                        >
+                             {/* ... PlayerNode ... */}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* ... Top Bar ... */}
+
+            {/* BOTTOM COMMAND DESK - REFINED */}
+            <div className="kruivka-panel absolute bottom-0 left-0 right-0 p-3 min-h-[80px] z-50 flex items-center justify-between gap-2 shadow-[0_-10px_40px_rgba(0,0,0,0.9)]">
+                
+                {/* Left: Phase Info */}
+                <div className="flex flex-col flex-1 min-w-0">
+                    <span className="text-[#8d6e63] text-[9px] font-bold tracking-widest uppercase">ОПЕРАЦІЯ</span>
+                    <span className="text-[#d7ccc8] text-xs font-mono font-bold truncate">
+                        {room.phase === 'day_discussion' ? `${currentSpeaker?.name} ГОВОРИТЬ` : room.phase.replace('_', ' ').toUpperCase()}
+                    </span>
+                </div>
+
+                {/* Center: Actions */}
+                <div className="flex-shrink-0 flex gap-2">
+                    {/* HOST CONTROLS */}
+                    {room.status === 'lobby' && amIHost && (
+                        <>
+                            {playersList.length < 10 && (
+                                <button onClick={() => addBots(room.roomId, playersList)} className="btn-kruivka text-xs px-2">
+                                    +БОТ
+                                </button>
+                            )}
+                            <button onClick={() => startGame(room.roomId, playersList)} className="btn-kruivka primary text-sm px-6">
+                                ПОЧАТИ
+                            </button>
+                        </>
+                    )}
+
+                    {/* ACTIONS */}
+                    {room.phase === 'night' && canShootNow && (
+                        <button onClick={() => {
+                            const target = room.nkvdPlan?.[room.planIndex];
+                            if (target) { handleShot(target); setSelectedNightTarget(target); }
+                        }} className="btn-kruivka danger animate-pulse text-sm px-6">
+                            ЛІКВІДУВАТИ
+                        </button>
+                    )}
+                     {/* DAY ACTIONS */}
+                     {isMyTurn && (
+                        <>
+                            {selectedForNomination && (
+                                <button onClick={() => { nominatePlayer(room.roomId, myUserId, selectedForNomination, room.nominations || {}); setSelectedForNomination(null); }} className="btn-kruivka danger text-xs px-3">
+                                    СУД: {room.players[selectedForNomination].name}
+                                </button>
+                            )}
+                            <button onClick={() => passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.nominations || {}, room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0)} className="btn-kruivka primary text-sm px-6">
+                                ЗАВЕРШИТИ
+                            </button>
+                        </>
+                    )}
+                </div>
+
+                {/* Right: Tools (Mic/Exit) */}
+                <div className="flex items-center gap-3 pl-3 border-l border-[#5d4037]/50">
+                     <button onClick={() => { isMuted ? muteMic(false) : muteMic(true) }} className="w-10 h-10 rounded-full bg-[#2d1e1b] border border-[#5d4037] flex items-center justify-center text-[#d7ccc8] hover:bg-[#3e2723] transition">
+                        {isMuted ? <MicOff size={18} className="text-red-400" /> : <Mic size={18} className="text-green-400" />}
+                    </button>
+                    <button onClick={() => { leaveRoom(room.roomId); onLeave(); }} className="w-10 h-10 rounded-full bg-[#2d1e1b] border border-[#5d4037] flex items-center justify-center text-[#d7ccc8] hover:bg-[#3e2723] transition">
+                        <LogOut size={18} />
+                    </button>
+                </div>
+
+            </div>
+
 
 
 interface GameTableProps {

@@ -217,11 +217,12 @@ body {
   border-color: #b71c1c;
 }
 
-/* Command Desk Panel */
+/* Command Desk Panel - Professional Dark Military Style */
 .kruivka-panel {
-  background: linear-gradient(180deg, #5d4037 0%, #3e2723 100%);
-  border-top: 4px solid #8d6e63;
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+  background: rgba(33, 33, 33, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 2px solid #5d4037;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9);
 }
 
 /* 3D Card Flip Utilities */
