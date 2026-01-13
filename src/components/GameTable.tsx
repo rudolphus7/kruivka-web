@@ -391,25 +391,27 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                 })}
             </div>
 
-            {/* TOP BAR */}
-            <div className="absolute top-4 left-0 right-0 flex justify-center z-20">
-                <div className="bg-[#d7ccc8] border-2 border-[#5d4037] px-6 py-2 shadow-lg transform rotate-1 flex items-center gap-6">
-                    <div className="flex flex-col items-center">
-                        <span className="text-[10px] text-[#5d4037] font-bold tracking-widest uppercase">КАМЕРА</span>
-                        <span className="text-xl text-[#b71c1c] font-black font-mono">{room.roomId}</span>
-                    </div>
-                    <div className="h-8 w-[2px] bg-[#5d4037]/30" />
-                    <div className="flex flex-col items-center">
-                        <span className="text-[10px] text-[#5d4037] font-bold tracking-widest uppercase">СТАТУС</span>
-                        <span className="text-sm font-bold text-[#3e2723]">{statusText}</span>
+            {/* TOP BAR - SHOW ONLY IN LOBBY */}
+            {room.phase === 'lobby' && (
+                <div className="absolute top-4 left-0 right-0 flex justify-center z-20">
+                    <div className="bg-[#d7ccc8] border-2 border-[#5d4037] px-6 py-2 shadow-lg transform rotate-1 flex items-center gap-6">
+                        <div className="flex flex-col items-center">
+                            <span className="text-[10px] text-[#5d4037] font-bold tracking-widest uppercase">КАМЕРА</span>
+                            <span className="text-xl text-[#b71c1c] font-black font-mono">{room.roomId}</span>
+                        </div>
+                        <div className="h-8 w-[2px] bg-[#5d4037]/30" />
+                        <div className="flex flex-col items-center">
+                            <span className="text-[10px] text-[#5d4037] font-bold tracking-widest uppercase">СТАТУС</span>
+                            <span className="text-sm font-bold text-[#3e2723]">{statusText}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* INFO MESSAGE */}
             {room.infoMessage && !room.winner && (
-                <div className="absolute top-24 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 animate-in fade-in zoom-in duration-300 z-30">
-                    <div className="bg-[#fff9c4] border border-[#fbc02d] p-4 shadow-xl transform -rotate-1 relative">
+                <div className="absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 animate-in fade-in zoom-in duration-300 z-50 pointer-events-none">
+                    <div className="bg-[#fff9c4]/90 backdrop-blur-sm border border-[#fbc02d] p-4 shadow-xl transform -rotate-1 relative rounded-lg">
                         <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-red-800 border-2 border-white flex items-center justify-center text-white font-bold text-xs shadow">!</div>
                         <p className="text-[#3e2723] font-mono text-sm font-bold text-center">{room.infoMessage}</p>
                     </div>
