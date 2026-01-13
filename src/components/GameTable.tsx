@@ -358,7 +358,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                     return (
                         <div
                             key={p.userId}
-                            className="absolute transition-all duration-700"
+                            className={`absolute transition-all duration-700 ${p.message ? 'z-[100]' : 'z-auto'}`}
                             style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
                         >
                             <PlayerNode
