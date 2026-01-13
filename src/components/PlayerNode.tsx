@@ -2,6 +2,11 @@ import React from 'react';
 import type { Player } from '../types/game';
 import { Skull, Crosshair } from 'lucide-react';
 import cardBack from '../assets/sorochka.png';
+import nkvdImg from '../assets/nkvd.png';
+import nkvdbossImg from '../assets/nkvdboss.png';
+import sbImg from '../assets/sb.png';
+import likarImg from '../assets/likar.png';
+import upaImg from '../assets/upa.png';
 
 interface PlayerNodeProps {
     player: Player;
@@ -34,6 +39,22 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
     else if (isMyTarget) borderClass = "ring-4 ring-green-500 scale-105 shadow-[0_0_15px_green]";
     else if (isRouletteTarget) borderClass = "ring-4 ring-red-600 animate-pulse";
 
+    // Role Image Mapping
+    const getRoleImage = (role?: string) => {
+        // Normalize role string if necessary
+        const r = role?.toLowerCase();
+        switch (r) {
+            case 'mafia': return nkvdImg;
+            case 'don': return nkvdbossImg;
+            case 'sheriff': return sbImg;
+            case 'doctor': return likarImg;
+            case 'villager': return upaImg;
+            default: return upaImg;
+        }
+    };
+
+    const roleImage = getRoleImage(player.role);
+
     return (
         <div
             className="w-24 h-32 perspective-1000 relative group z-10 cursor-pointer"
@@ -50,51 +71,33 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
             <div className={`w-full h-full relative transition-transform duration-700 transform-style-3d ${!showFace ? 'rotate-y-180' : ''}`}>
 
                 {/* --- FRONT FACE (ROLE / INFO) --- */}
-                <div className={`absolute inset-0 w-full h-full backface-hidden bg-[#e0e0e0] border-2 border-gray-400 rounded-lg overflow-hidden flex flex-col ${borderClass}`}>
-                    {/* Top Stripe (Role Color) */}
-                    <div className="h-6 w-full flex items-center justify-center font-bold text-[10px] text-white shadow-sm" style={{ backgroundColor: roleColor || '#555' }}>
-                        {roleName || "НЕВІДОМО"}
-                    </div>
+                {/* Added bg-[#e0e0e0] to ensure no transparency (fixes ghosting) */}
+                <div className={`absolute inset-0 w-full h-full backface-hidden bg-[#e0e0e0] border-2 border-gray-400 rounded-lg overflow-hidden flex flex-col ${showFace ? 'z-20' : 'z-10'} ${borderClass}`}>
 
-                    {/* Main Content (Avatar/Icon) */}
-                    <div className="flex-1 flex items-center justify-center bg-[#f5f5f5] relative">
-                        {player.alive ? (
-                            <div className="text-4xl font-mono font-bold text-gray-700 opacity-20 select-none">
-                                {player.name.substring(0, 2).toUpperCase()}
-                            </div>
-                        ) : (
-                            <Skull size={40} className="text-gray-400" />
-                        )}
+                    {/* Role Image Area */}
+                    <div className="relative flex-1 bg-black">
+                        {/* If alive or me -> show the Role Image. */}
+                        <img src={roleImage} alt={roleName} className="w-full h-full object-cover" />
 
-                        {/* DEAD STAMP (On Face) */}
                         {!player.alive && (
-                            <div className="absolute inset-0 flex items-center justify-center rotate-[-25deg]">
-                                <span className="k-stamp red border-4 text-xs bg-white/50 px-2 py-1">ЛІКВІДОВАНО</span>
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                                <Skull size={40} className="text-white opacity-80" />
+                                <div className="absolute inset-0 flex items-center justify-center rotate-[-25deg]">
+                                    <span className="k-stamp red border-4 text-xs bg-white/50 px-2 py-1">ЛІКВІДОВАНО</span>
+                                </div>
                             </div>
                         )}
                     </div>
 
                     {/* Bottom Name Label */}
-                    <div className="bg-[#d7ccc8] py-1 text-center border-t border-gray-300">
-                        <p className="text-[10px] font-black text-[#3e2723] truncate px-1 leading-tight">{player.name}</p>
-                        {isMe && <p className="text-[8px] text-gray-600 leading-none">(ВИ)</p>}
-                    </div>
-
-                    {/* FRONT STATUS BADGES */}
-                    <div className="absolute top-7 right-1 flex flex-col gap-1 items-end pointer-events-none">
-                        {votesReceived > 0 && (
-                            <div className="bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-md border-2 border-white">
-                                {votesReceived}
-                            </div>
-                        )}
-                        {isNominated && <span className="k-stamp red text-[8px] bg-yellow-100 shadow-sm">СУД!</span>}
-                        {isSheriffChecked && <span className="k-stamp blue text-[8px] bg-white shadow-sm">ПЕРЕВІРЕНО</span>}
-                        {isDoctorHealed && <span className="k-stamp blue text-[8px] bg-green-100 shadow-sm">ЛІКУВАННЯ</span>}
+                    <div className="bg-[#d7ccc8] py-1 text-center border-t border-gray-500 h-[22px] flex items-center justify-center">
+                        <p className="text-[10px] font-black text-[#3e2723] truncate px-1 leading-tight w-full">{player.name}</p>
                     </div>
                 </div>
 
                 {/* --- BACK FACE (CARD SHIRT) --- */}
-                <div className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-lg overflow-hidden border-2 border-[#3e2723] shadow-md ${borderClass}`}>
+                {/* Added bg-[#3e2723] to ensure solid background behind shirt */}
+                <div className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-lg overflow-hidden border-2 border-[#3e2723] shadow-md bg-[#3e2723] ${!showFace ? 'z-20' : 'z-10'} ${borderClass}`}>
                     <img src={cardBack} alt="Card Back" className="w-full h-full object-cover" />
 
                     {/* Speaking Indicator on Back */}
@@ -110,6 +113,21 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
                     </div>
                 </div>
 
+            </div>
+
+            {/* STATUS BADGES (FRONT ONLY - But rendered outside to be visible? No, attaches to front face logic typically. 
+                But for 3D flip, if we put them outside, they float. If inside front div, they hide on flip.
+                User wants to see statuses on the front (Role side).
+             */}
+            <div className={`absolute top-2 right-[-8px] flex flex-col gap-1 items-end pointer-events-none z-[60] transition-opacity duration-300 ${!showFace ? 'opacity-0' : 'opacity-100'}`}>
+                {votesReceived > 0 && (
+                    <div className="bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-md border-2 border-white">
+                        {votesReceived}
+                    </div>
+                )}
+                {isNominated && <span className="k-stamp red text-[8px] bg-yellow-100 shadow-sm">СУД!</span>}
+                {isSheriffChecked && <span className="k-stamp blue text-[8px] bg-white shadow-sm">ПЕРЕВІРЕНО</span>}
+                {isDoctorHealed && <span className="k-stamp blue text-[8px] bg-green-100 shadow-sm">ЛІКУВАННЯ</span>}
             </div>
 
             {/* MESSAGE BUBBLE - OUTSIDE TRANSFORM CONTAINER */}
