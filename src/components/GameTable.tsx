@@ -7,9 +7,16 @@ import { botSpeeches } from '../utils/botLogic';
 import { Mic, MicOff, LogOut } from 'lucide-react';
 import { ref, set } from 'firebase/database';
 import { database } from '../firebase';
+import { useWindowSize } from '../hooks/useWindowSize';
 
-// Mobile: Rectangular 2-Column Layout to maximize space and avoid overlap
-// We place users in two vertical columns
+// Desktop: Wide Oval
+const DESKTOP_POSITIONS = [
+    { x: 50, y: 85 }, { x: 25, y: 75 }, { x: 10, y: 50 }, { x: 25, y: 25 },
+    { x: 40, y: 15 }, { x: 60, y: 15 }, { x: 75, y: 25 }, { x: 90, y: 50 },
+    { x: 75, y: 75 }, { x: 60, y: 85 }
+];
+
+// Mobile: Rectangular 2-Column Layout
 const MOBILE_POSITIONS_REFINED = [
     { x: 50, y: 82 }, // 1 (Me - Bottom Center)
     { x: 20, y: 70 }, // 2 (Left col bottom)
@@ -23,151 +30,29 @@ const MOBILE_POSITIONS_REFINED = [
     { x: 80, y: 70 }  // 10 (Right col bottom)
 ];
 
-// ... (Desktop positions remain the same)
-
-// ...
-
-    return (
-        <div className={`theme-kruivka w-full h-screen overflow-hidden flex flex-col items-center justify-center p-0 transition-colors duration-200 ${showShotAnimation ? 'bg-red-900/40' : ''}`}>
-            {/* Dark overlay for mood */}
-            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
-
-            {/* CENTRAL TIMER - MILITARY CHRONOMETER STYLE */}
-            {/* Placed in center of table, slightly above center to avoid covering center cards if any */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none flex flex-col items-center justify-center">
-                 <div className="w-24 h-24 rounded-full border-4 border-[#5d4037] bg-[#212121] shadow-[0_0_30px_rgba(0,0,0,0.8)] flex flex-col items-center justify-center relative">
-                     <div className="absolute inset-0 rounded-full border border-[#ffffff10]"></div>
-                     <span className="text-[10px] text-[#8d6e63] font-bold tracking-widest mb-1">ЧАС</span>
-                     <span className={`text-4xl font-mono font-black tracking-wider ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-[#ffcd38]'}`}>
-                         {timeLeft}
-                     </span>
-                 </div>
-            </div>
-
-            {/* Players Table Area */}
-            <div className="relative w-full h-full max-w-[1000px] max-h-[800px] mx-auto">
-                {playersList.map((p, i) => {
-                    // ... (mapping logic remains same)
-                    const pos = positions[i] || { x: 50, y: 50 };
-                    // ...
-                    return (
-                        <div
-                            key={p.userId}
-                            className={`absolute transition-all duration-700 ${p.message ? 'z-[100]' : 'z-auto'}`}
-                            style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
-                        >
-                             {/* ... PlayerNode ... */}
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* ... Top Bar ... */}
-
-            {/* BOTTOM COMMAND DESK - REFINED */}
-            <div className="kruivka-panel absolute bottom-0 left-0 right-0 p-3 min-h-[80px] z-50 flex items-center justify-between gap-2 shadow-[0_-10px_40px_rgba(0,0,0,0.9)]">
-                
-                {/* Left: Phase Info */}
-                <div className="flex flex-col flex-1 min-w-0">
-                    <span className="text-[#8d6e63] text-[9px] font-bold tracking-widest uppercase">ОПЕРАЦІЯ</span>
-                    <span className="text-[#d7ccc8] text-xs font-mono font-bold truncate">
-                        {room.phase === 'day_discussion' ? `${currentSpeaker?.name} ГОВОРИТЬ` : room.phase.replace('_', ' ').toUpperCase()}
-                    </span>
-                </div>
-
-                {/* Center: Actions */}
-                <div className="flex-shrink-0 flex gap-2">
-                    {/* HOST CONTROLS */}
-                    {room.status === 'lobby' && amIHost && (
-                        <>
-                            {playersList.length < 10 && (
-                                <button onClick={() => addBots(room.roomId, playersList)} className="btn-kruivka text-xs px-2">
-                                    +БОТ
-                                </button>
-                            )}
-                            <button onClick={() => startGame(room.roomId, playersList)} className="btn-kruivka primary text-sm px-6">
-                                ПОЧАТИ
-                            </button>
-                        </>
-                    )}
-
-                    {/* ACTIONS */}
-                    {room.phase === 'night' && canShootNow && (
-                        <button onClick={() => {
-                            const target = room.nkvdPlan?.[room.planIndex];
-                            if (target) { handleShot(target); setSelectedNightTarget(target); }
-                        }} className="btn-kruivka danger animate-pulse text-sm px-6">
-                            ЛІКВІДУВАТИ
-                        </button>
-                    )}
-                     {/* DAY ACTIONS */}
-                     {isMyTurn && (
-                        <>
-                            {selectedForNomination && (
-                                <button onClick={() => { nominatePlayer(room.roomId, myUserId, selectedForNomination, room.nominations || {}); setSelectedForNomination(null); }} className="btn-kruivka danger text-xs px-3">
-                                    СУД: {room.players[selectedForNomination].name}
-                                </button>
-                            )}
-                            <button onClick={() => passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.nominations || {}, room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0)} className="btn-kruivka primary text-sm px-6">
-                                ЗАВЕРШИТИ
-                            </button>
-                        </>
-                    )}
-                </div>
-
-                {/* Right: Tools (Mic/Exit) */}
-                <div className="flex items-center gap-3 pl-3 border-l border-[#5d4037]/50">
-                     <button onClick={() => { isMuted ? muteMic(false) : muteMic(true) }} className="w-10 h-10 rounded-full bg-[#2d1e1b] border border-[#5d4037] flex items-center justify-center text-[#d7ccc8] hover:bg-[#3e2723] transition">
-                        {isMuted ? <MicOff size={18} className="text-red-400" /> : <Mic size={18} className="text-green-400" />}
-                    </button>
-                    <button onClick={() => { leaveRoom(room.roomId); onLeave(); }} className="w-10 h-10 rounded-full bg-[#2d1e1b] border border-[#5d4037] flex items-center justify-center text-[#d7ccc8] hover:bg-[#3e2723] transition">
-                        <LogOut size={18} />
-                    </button>
-                </div>
-
-            </div>
-
-
-
 interface GameTableProps {
     room: GameRoom;
     onLeave: () => void;
 }
 
-
 const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
     const { myUserId, passTurn, nominatePlayer, voteForCandidate, startGame, clearInfoMessage, addBots, sendNightAction, setBotMessage, finalizeVoting, voteForBot, setNkvdPlan, endNight, appendDynamicPlan, leaveRoom } = useGame();
-    // --- ВСТАВИТИ ЦЕЙ БЛОК КОДУ ---
 
-    // Автоматичне очищення повідомлень через 3 секунди
-    useEffect(() => {
-        if (room.infoMessage) {
-            const timer = setTimeout(() => {
-                // Викликаємо функцію очищення (вона зітре текст у базі Firebase)
-                clearInfoMessage(room.roomId);
-            }, 3000);
-
-            // Якщо компонент зникне або повідомлення зміниться до 3с - скасовуємо таймер
-            return () => clearTimeout(timer);
-        }
-    }, [room.infoMessage, room.roomId]);
-
-    // -------------------------------
     const { isMuted, muteMic } = useVoice(room.roomId);
     const { width } = useWindowSize();
-    const isMobile = width < 768; // Standard mobile breakpoint
+    const isMobile = width < 768;
 
-    // Choose specific positions based on array length (if < 10 players, standard oval might look weird, but for now fixed 10 is aim)
-    // We map 10 positions. If fewer players, they just fill the first N slots.
+    // Choose positions
     const positions = isMobile ? MOBILE_POSITIONS_REFINED : DESKTOP_POSITIONS;
-
 
     const [selectedForNomination, setSelectedForNomination] = useState<string | null>(null);
     const [nkvdSelection, setNkvdSelection] = useState<string[]>([]);
-    const [sheriffResult, setSheriffResult] = useState<{ name: string, isEnemy: boolean } | null>(null); // New state for Sheriff check result
+    const [sheriffResult, setSheriffResult] = useState<{ name: string, isEnemy: boolean } | null>(null);
     const [timeLeft, setTimeLeft] = useState(30);
     const [showShotAnimation, setShowShotAnimation] = useState(false);
+    const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
+    // --- PLAYERS LIST ---
     const playersList = useMemo(() => {
         const list = Object.values(room.players).sort((a, b) => a.userId.localeCompare(b.userId));
         const myIndex = list.findIndex(p => p.userId === myUserId);
@@ -189,7 +74,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         return room.nominations ? Array.from(new Set(Object.values(room.nominations))) : [];
     }, [room.nominations]);
 
-    // Timer & Auto-pass for Host
+    // --- TIMER ---
     useEffect(() => {
         setTimeLeft(30);
     }, [room.phase, room.speakerIndex]);
@@ -201,25 +86,23 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         }
     }, [room.phase, timeLeft]);
 
-    // --- BOT AUTOMATION (HOST ONLY) ---
+    // --- BOTS & AUTO-PASS ---
     useEffect(() => {
         if (!amIHost) return;
 
-        // 1. Day Discussion Bot Logic
+        // Day Discussion
         if (room.phase === 'day_discussion') {
             if (timeLeft <= 0 || (currentSpeaker && !currentSpeaker.alive)) {
                 passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.nominations || {}, room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0);
             } else if (currentSpeaker?.userId.startsWith('BOT') && currentSpeaker.alive) {
                 if (timeLeft === 28) {
                     const isCandidate = candidatesList.includes(currentSpeaker.userId);
-                    // Bot nominates only if it hasn't nominated yet AND there's a night kill
                     const hasNominated = room.nominations && room.nominations[currentSpeaker.userId];
-                    const shouldNominate = !hasNominated && !isCandidate && room.wasNightKill && Math.random() < 0.4; // Increased prob slightly
+                    const shouldNominate = !hasNominated && !isCandidate && room.wasNightKill && Math.random() < 0.4;
 
                     if (shouldNominate) {
                         const potentialTargets = allPlayersSorted.filter(p => p.userId !== currentSpeaker.userId && p.alive && !candidatesList.includes(p.userId));
                         const target = potentialTargets.length > 0 ? potentialTargets[Math.floor(Math.random() * potentialTargets.length)] : null;
-
                         if (target) {
                             nominatePlayer(room.roomId, currentSpeaker.userId, target.userId, room.nominations || {});
                             setBotMessage(room.roomId, currentSpeaker.userId, botSpeeches.nomination(target.name));
@@ -235,19 +118,15 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
             }
         }
 
-        // 2. Voting Bot Logic
+        // Voting
         if (room.phase === 'day_voting') {
             const timer = setTimeout(() => {
                 allPlayersSorted.forEach(p => {
                     if (p.userId.startsWith('BOT') && p.alive && candidatesList.length > 0) {
-                        // Filter out self from voting candidates
                         const availableCandidates = candidatesList.filter(c => c !== p.userId);
-                        // If only candidate is self, or no candidates (shouldn't happen), vote for first available or self if must
                         const choice = availableCandidates.length > 0
                             ? availableCandidates[Math.floor(Math.random() * availableCandidates.length)]
-                            : candidatesList[0]; // Fallback, but logic shouldn't reach here if we want to avoid strict self-vote
-
-                        // Strict rule: Bots never vote for themselves if possible. If only selection IS themselves, they might have to, but with >1 candidates it's avoidable.
+                            : candidatesList[0];
                         if (choice) {
                             voteForBot(room.roomId, p.userId, choice);
                         }
@@ -261,18 +140,16 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         }
     }, [timeLeft, amIHost, room.phase, room.roomId, room.speakerIndex, allPlayersSorted, candidatesList, room.nominations, room.wasNightKill, room.planIndex, room.nkvdPlan?.length, passTurn, currentSpeaker, nominatePlayer, setBotMessage, voteForBot, finalizeVoting]);
 
+    // --- NIGHT LOGIC ---
     const [rouletteIndex, setRouletteIndex] = useState(-1);
     const [selectedNightTarget, setSelectedNightTarget] = useState<string | null>(null);
     const [canShootNow, setCanShootNow] = useState(false);
+    const [hasRunRoulette, setHasRunRoulette] = useState(false);
 
-    // Reset Sheriff result on phase change
     useEffect(() => {
         setSheriffResult(null);
-        setSelectedNightTarget(null); // Also good to reset selection visual
+        setSelectedNightTarget(null);
     }, [room.phase]);
-
-    // --- NIGHT & ROULETTE AUTOMATION (HOST ONLY) ---
-    const [hasRunRoulette, setHasRunRoulette] = useState(false);
 
     useEffect(() => {
         if (!amIHost) return;
@@ -289,7 +166,6 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                     setRouletteIndex(i);
                     const p = allPlayersSorted[i];
                     if (p.userId === nkvdTargetId) {
-                        // Bots shoot automatically
                         allPlayersSorted.forEach(async (bot) => {
                             if (bot.userId.startsWith('BOT') && bot.alive && (bot.role === 'mafia' || bot.role === 'don')) {
                                 const botRef = ref(database, `rooms/${room.roomId}/nightActions/${bot.userId}`);
@@ -306,7 +182,6 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         }
     }, [room.phase, room.roomId, amIHost, allPlayersSorted, room.nkvdPlan, room.planIndex, endNight, database]);
 
-    // Track when NKVD can shoot (only when roulette is on target)
     useEffect(() => {
         const currentTarget = room.nkvdPlan?.[room.planIndex];
         if (room.phase === 'night' && rouletteIndex >= 0 && currentTarget) {
@@ -334,6 +209,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         }
     }, [room.phase, room.roomId, amIHost, allPlayersSorted, room.nkvdPlan, timeLeft, appendDynamicPlan]);
 
+    // --- MIC & INFO ---
     useEffect(() => {
         if (isMyTurn) muteMic(false);
         else muteMic(true);
@@ -342,27 +218,29 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
     useEffect(() => {
         if (room.infoMessage) {
             const timer = setTimeout(() => {
-                if (amIHost) clearInfoMessage(room.roomId);
-            }, 3000); // 3 seconds instead of 5
+                clearInfoMessage(room.roomId);
+            }, 3000);
             return () => clearTimeout(timer);
         }
-    }, [room.infoMessage, amIHost, room.roomId, clearInfoMessage]);
+    }, [room.infoMessage, room.roomId, clearInfoMessage]); // Removed amIHost check to ensure clients clear local visual toast if possible, though clearInfoMessage calls DB
 
+    // --- WARNING TOAST ---
+    useEffect(() => {
+        if (warningMessage) {
+            const timer = setTimeout(() => setWarningMessage(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [warningMessage]);
+
+    // --- HELPERS ---
     const getRoleInfo = (player: Player) => {
         const isMe = player.userId === myUserId;
         const isMeNKVD = myPlayer?.role === 'mafia' || myPlayer?.role === 'don';
         const isTargetNKVD = player.role === 'mafia' || player.role === 'don';
 
-        // 1. You always see your own role
         if (isMe) return getRoleDetails(player.role);
-
-        // 2. Dead players' roles are visible to everyone (both open and closed modes)
         if (!player.alive) return getRoleDetails(player.role);
-
-        // 3. NKVD (mafia + don = 3 people) see each other's roles while alive
         if (isMeNKVD && isTargetNKVD) return getRoleDetails(player.role);
-
-        // 4. Everyone else sees NO ROLE for living players (empty)
         return { name: "", color: "#43A047" };
     };
 
@@ -393,15 +271,6 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         }
     };
 
-    const [warningMessage, setWarningMessage] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (warningMessage) {
-            const timer = setTimeout(() => setWarningMessage(null), 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [warningMessage]);
-
     const handlePlayerClick = (p: Player) => {
         if (room.phase === 'night_zero' && myPlayer?.role === 'don' && p.userId !== myUserId) {
             if (nkvdSelection.includes(p.userId)) {
@@ -411,33 +280,19 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
             }
         }
 
-        // Night Action Limits Check
         const hasActed = room.nightActions && room.nightActions[myUserId];
 
-        // Doctor healing during night
         if (room.phase === 'night' && myPlayer?.role === 'doctor' && myPlayer?.alive && p.alive) {
-            if (hasActed) {
-                setWarningMessage("Ви вже лікували цієї ночі!");
-                return;
-            }
-            if (p.userId === room.lastHealedTarget) {
-                setWarningMessage("Не можна лікувати одного й того ж гравця двічі поспіль!");
-                return;
-            }
+            if (hasActed) { setWarningMessage("Ви вже лікували цієї ночі!"); return; }
+            if (p.userId === room.lastHealedTarget) { setWarningMessage("Не можна лікувати одного й того ж гравця двічі поспіль!"); return; }
             setSelectedNightTarget(p.userId);
             sendNightAction(room.roomId, p.userId);
         }
 
-        // Sheriff check during night
         if (room.phase === 'night' && myPlayer?.role === 'sheriff' && myPlayer?.alive && p.alive && p.userId !== myUserId) {
-            if (hasActed || sheriffResult) {
-                setWarningMessage("Ви вже перевіряли гравця цієї ночі!");
-                return;
-            }
+            if (hasActed || sheriffResult) { setWarningMessage("Ви вже перевіряли гравця цієї ночі!"); return; }
             setSelectedNightTarget(p.userId);
             sendNightAction(room.roomId, p.userId);
-
-            // Immediate feedback for Sheriff (Client-side check)
             const isEnemy = p.role === 'mafia' || p.role === 'don';
             setSheriffResult({ name: p.name, isEnemy });
         }
@@ -456,25 +311,35 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         'finished': "КІНЕЦЬ"
     }[room.phase] || room.phase.toUpperCase();
 
+    // --- RENDER ---
     return (
-        <div className={`theme-kruivka w-full h-screen overflow-hidden flex flex-col items-center justify-center p-4 transition-colors duration-200 ${showShotAnimation ? 'bg-red-900/40' : ''}`}>
-            {/* Dark overlay for mood */}
-            <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+        <div className={`theme-kruivka w-full h-screen overflow-hidden flex flex-col items-center justify-center p-0 transition-colors duration-200 ${showShotAnimation ? 'bg-red-900/40' : ''}`}>
 
-            {/* Players Table Area */}
-            <div className="relative w-full h-full max-w-[800px] max-h-[600px] mx-auto mb-24">
-                {/* Table texture or centerpiece could go here */}
+            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+
+            {/* CENTRAL TIMER */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none flex flex-col items-center justify-center">
+                <div className="w-24 h-24 rounded-full border-4 border-[#5d4037] bg-[#212121] shadow-[0_0_30px_rgba(0,0,0,0.8)] flex flex-col items-center justify-center relative">
+                    <div className="absolute inset-0 rounded-full border border-[#ffffff10]"></div>
+                    <span className="text-[10px] text-[#8d6e63] font-bold tracking-widest mb-1">ЧАС</span>
+                    <span className={`text-4xl font-mono font-black tracking-wider ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-[#ffcd38]'}`}>
+                        {timeLeft}
+                    </span>
+                </div>
+            </div>
+
+            {/* TABLE AREA */}
+            <div className="relative w-full h-full max-w-[1000px] max-h-[800px] mx-auto">
                 {playersList.map((p, i) => {
-                    const pos = POSITIONS[i] || { x: 50, y: 50 };
+                    const pos = positions[i] || { x: 50, y: 50 };
                     const roleInfo = getRoleInfo(p);
                     const globalIndex = allPlayersSorted.findIndex(pl => pl.userId === p.userId);
                     const currentNkvdTargetId = (room.nkvdPlan && room.planIndex !== undefined) ? room.nkvdPlan[room.planIndex] : null;
                     const isMeNKVD = myPlayer?.role === 'mafia' || myPlayer?.role === 'don';
                     const isCurrentNkvdTarget = isMeNKVD && p.userId === currentNkvdTargetId;
 
-                    // STATUS LOGIC
                     const isNominated = candidatesList.includes(p.userId);
-                    const isSheriffChecked = myPlayer?.role === 'sheriff' && selectedNightTarget === p.userId; // Or previously checked? The UI currently shows *current* selection as "checked" for feedback.
+                    const isSheriffChecked = myPlayer?.role === 'sheriff' && selectedNightTarget === p.userId;
                     const isDoctorHealed = myPlayer?.role === 'doctor' && selectedNightTarget === p.userId;
                     const isMyTarget = selectedNightTarget === p.userId || selectedForNomination === p.userId || nkvdSelection.includes(p.userId);
 
@@ -489,13 +354,11 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                                 isMe={p.userId === myUserId}
                                 isSpeaking={room.phase === 'day_discussion' && globalIndex === room.speakerIndex}
                                 isRouletteTarget={globalIndex === rouletteIndex}
-
                                 isNominated={isNominated}
                                 isSheriffChecked={isSheriffChecked}
                                 isDoctorHealed={isDoctorHealed}
                                 isMyTarget={isMyTarget}
                                 isNkvdTarget={isCurrentNkvdTarget}
-
                                 votesReceived={voteCounts[p.userId] || 0}
                                 roleName={roleInfo.name}
                                 gameMode={room.gameMode || 'open'}
@@ -506,7 +369,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                 })}
             </div>
 
-            {/* Top Status Bar (Paper Style) */}
+            {/* TOP BAR */}
             <div className="absolute top-4 left-0 right-0 flex justify-center z-20">
                 <div className="bg-[#d7ccc8] border-2 border-[#5d4037] px-6 py-2 shadow-lg transform rotate-1 flex items-center gap-6">
                     <div className="flex flex-col items-center">
@@ -521,7 +384,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                 </div>
             </div>
 
-            {/* INFO MESSAGE / DOSSIER */}
+            {/* INFO MESSAGE */}
             {room.infoMessage && !room.winner && (
                 <div className="absolute top-24 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 animate-in fade-in zoom-in duration-300 z-30">
                     <div className="bg-[#fff9c4] border border-[#fbc02d] p-4 shadow-xl transform -rotate-1 relative">
@@ -530,135 +393,81 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                     </div>
                 </div>
             )}
+
             {/* WARNING TOAST */}
             {warningMessage && (
-                <div className="absolute top-40 left-1/2 -translate-x-1/2 z-[70] animate-in slide-in-from-top duration-300">
-                    <div className="bg-red-700 text-white px-6 py-2 shadow-lg border-2 border-white font-mono text-xs font-bold transform rotate-2">
-                        ПОМИЛКА: {warningMessage}
-                    </div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] bg-red-700 text-white px-6 py-3 rounded-lg shadow-2xl animate-bounce font-bold border-2 border-red-900">
+                    {warningMessage}
                 </div>
             )}
 
-            {/* BOTTOM COMMAND DESK */}
-            <div className="kruivka-panel absolute bottom-0 left-0 right-0 p-4 pb-8 z-40 flex flex-col gap-3 items-center">
+            {/* WINNER SCREEN */}
+            {room.winner && (
+                <div className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center animate-in zoom-in duration-500">
+                    <h1 className="text-6xl font-black text-white mb-4 drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]">
+                        {room.winner === 'mafia' ? "ПЕРЕМОГА НКВС (МАФІЯ)" : "ПЕРЕМОГА УПА (МИРНІ)"}
+                    </h1>
+                    <button onClick={() => { leaveRoom(room.roomId); onLeave(); }} className="mt-8 px-8 py-3 bg-[#5d4037] text-white font-bold rounded hover:bg-[#4e342e] transition">
+                        ВИЙТИ В МЕНЮ
+                    </button>
+                </div>
+            )}
 
-                {/* TIMER CLOCK */}
-                <div className="absolute -top-6 bg-[#3e2723] text-[#ffcd38] border-2 border-[#5d4037] rounded-full w-20 h-20 flex flex-col items-center justify-center shadow-lg">
-                    <span className="text-[8px] opacity-70">ЧАС</span>
-                    <span className="text-2xl font-mono font-bold">{timeLeft}</span>
+            {/* FOOTER PANEL */}
+            <div className="kruivka-panel absolute bottom-0 left-0 right-0 p-3 min-h-[80px] z-50 flex items-center justify-between gap-2 shadow-[0_-10px_40px_rgba(0,0,0,0.9)]">
+
+                <div className="flex flex-col flex-1 min-w-0">
+                    <span className="text-[#8d6e63] text-[9px] font-bold tracking-widest uppercase">ОПЕРАЦІЯ</span>
+                    <span className="text-[#d7ccc8] text-xs font-mono font-bold truncate">
+                        {room.phase === 'day_discussion' ? `${currentSpeaker?.name} ГОВОРИТЬ` : room.phase.replace('_', ' ').toUpperCase()}
+                    </span>
                 </div>
 
-                {/* PHASE INDICATOR */}
-                <div className="text-[#d7ccc8] text-xs font-mono tracking-widest mb-2 mt-4 uppercase">
-                    {room.phase === 'day_discussion' ? `ЕФІР: ${currentSpeaker?.name}` : room.phase.replace('_', ' ')}
-                </div>
-
-                {/* CONTROLS ROW */}
-                <div className="flex flex-wrap justify-center gap-3 w-full max-w-2xl">
-
-                    {/* HOST CONTROLS */}
+                <div className="flex-shrink-0 flex gap-2">
                     {room.status === 'lobby' && amIHost && (
                         <>
                             {playersList.length < 10 && (
-                                <button onClick={() => addBots(room.roomId, playersList)} className="btn-kruivka">
-                                    + БОТИ ({10 - playersList.length})
+                                <button onClick={() => addBots(room.roomId, playersList)} className="btn-kruivka text-xs px-2">
+                                    +БОТ
                                 </button>
                             )}
-                            <button onClick={() => startGame(room.roomId, playersList)} disabled={playersList.length < 10} className="btn-kruivka primary">
-                                ПОЧАТИ ОПЕРАЦІЮ
+                            <button onClick={() => startGame(room.roomId, playersList)} className="btn-kruivka primary text-sm px-6">
+                                ПОЧАТИ
                             </button>
                         </>
                     )}
 
-                    {/* NIGHT ACTIONS */}
-                    {room.phase === 'night_zero' && myPlayer?.role === 'don' && (
-                        <button onClick={() => setNkvdPlan(room.roomId, nkvdSelection)} disabled={nkvdSelection.length < 3} className="btn-kruivka danger">
-                            ЗАТВЕРДИТИ ПЛАН ({nkvdSelection.length}/3)
-                        </button>
-                    )}
                     {room.phase === 'night' && canShootNow && (
                         <button onClick={() => {
                             const target = room.nkvdPlan?.[room.planIndex];
                             if (target) { handleShot(target); setSelectedNightTarget(target); }
-                        }} className="btn-kruivka danger animate-pulse">
-                            ВОГОНЬ!
+                        }} className="btn-kruivka danger animate-pulse text-sm px-6">
+                            ЛІКВІДУВАТИ
                         </button>
                     )}
-                    {/* DAY ACTIONS */}
                     {isMyTurn && (
                         <>
                             {selectedForNomination && (
-                                <button onClick={() => { nominatePlayer(room.roomId, myUserId, selectedForNomination, room.nominations || {}); setSelectedForNomination(null); }} className="btn-kruivka danger">
-                                    СУДИТИ {room.players[selectedForNomination].name}
+                                <button onClick={() => { nominatePlayer(room.roomId, myUserId, selectedForNomination, room.nominations || {}); setSelectedForNomination(null); }} className="btn-kruivka danger text-xs px-3">
+                                    СУД: {room.players[selectedForNomination].name}
                                 </button>
                             )}
-                            <button onClick={() => passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.nominations || {}, room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0)} className="btn-kruivka primary">
-                                ПЕРЕДАТИ СЛОВО
+                            <button onClick={() => passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.nominations || {}, room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0)} className="btn-kruivka primary text-sm px-6">
+                                ЗАВЕРШИТИ
                             </button>
                         </>
                     )}
-
-                    {/* FOOTER ACTIONS (Mic/Exit) */}
-                    <div className="flex items-center gap-4 ml-4 pl-4 border-l border-[#8d6e63]">
-                        <button onClick={() => { isMuted ? muteMic(false) : muteMic(true) }} className="text-[#d7ccc8] hover:text-white transition flex flex-col items-center">
-                            {isMuted ? <MicOff size={20} className="text-red-400" /> : <Mic size={20} className="text-green-400" />}
-                        </button>
-                        <button onClick={() => { leaveRoom(room.roomId); onLeave(); }} className="text-[#d7ccc8] hover:text-white transition flex flex-col items-center" title="Вихід">
-                            <LogOut size={20} />
-                        </button>
-                    </div>
                 </div>
 
-                {/* ROLE FEEDBACK PANEL (Sheriff/Doctor) */}
-                {(sheriffResult || (room.phase === 'night' && myPlayer?.role === 'doctor' && selectedNightTarget)) && (
-                    <div className="mt-2 bg-[#d7ccc8] text-[#3e2723] px-4 py-1 font-mono text-xs font-bold border border-[#5d4037] shadow-inner">
-                        {sheriffResult && `РЕЗУЛЬТАТ: ${sheriffResult.isEnemy ? "ВОРОГ" : "СВІЙ"}`}
-                        {myPlayer?.role === 'doctor' && selectedNightTarget && `ЛІКУВАННЯ: ${room.players[selectedNightTarget]?.name}`}
-                    </div>
-                )}
+                <div className="flex items-center gap-3 pl-3 border-l border-[#5d4037]/50">
+                    <button onClick={() => { isMuted ? muteMic(false) : muteMic(true) }} className="w-10 h-10 rounded-full bg-[#2d1e1b] border border-[#5d4037] flex items-center justify-center text-[#d7ccc8] hover:bg-[#3e2723] transition">
+                        {isMuted ? <MicOff size={18} className="text-red-400" /> : <Mic size={18} className="text-green-400" />}
+                    </button>
+                    <button onClick={() => { leaveRoom(room.roomId); onLeave(); }} className="w-10 h-10 rounded-full bg-[#2d1e1b] border border-[#5d4037] flex items-center justify-center text-[#d7ccc8] hover:bg-[#3e2723] transition">
+                        <LogOut size={18} />
+                    </button>
+                </div>
             </div>
-
-            {/* Game Over Modal (Authentic) */}
-            {room.status === 'finished' && (
-                <div className="absolute inset-0 bg-[#3e2723]/95 z-[60] flex flex-col items-center justify-center p-6 animate-in fade-in duration-1000">
-                    <div className="max-w-md w-full text-center space-y-8 border-4 border-[#d7ccc8] p-8 bg-[url('/src/assets/bg-kruivka-table.png')] bg-cover relative">
-                        <div className="absolute inset-0 bg-black/60" /> {/* Dim bg image */}
-                        <div className="relative z-10">
-                            <h1 className="text-4xl font-black text-[#ffcd38] tracking-widest uppercase mb-2 drop-shadow-md">
-                                {room.winner === "UPA" ? "ПЕРЕМОГА УПА" : "ПЕРЕМОГА НКВС"}
-                            </h1>
-                            <div className="w-full h-1 bg-[#d7ccc8] mb-6" />
-
-                            <PlayerNode
-                                player={{
-                                    userId: "WINNER",
-                                    name: room.winner === "UPA" ? "ГЕРОЇ" : "ЧЕКІСТИ",
-                                    role: room.winner === "UPA" ? "civilian" : "don",
-                                    alive: true,
-                                    ready: true,
-                                    message: "",
-                                    knownEnemyId: null
-                                }}
-                                isMe={false}
-                                isSpeaking={false}
-                                isRouletteTarget={false}
-                                isNominated={false}
-                                isSheriffChecked={false}
-                                isDoctorHealed={false}
-                                isMyTarget={false}
-                                isNkvdTarget={false}
-                                votesReceived={0}
-                                roleName={room.winner === "UPA" ? "УПА" : "НКВС"}
-                                onClick={() => { }}
-                            />
-
-                            <button onClick={() => { leaveRoom(room.roomId); onLeave(); }} className="btn-kruivka primary w-full mt-8 text-lg">
-                                ПОВЕРНУТИСЬ В ШТАБ
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
