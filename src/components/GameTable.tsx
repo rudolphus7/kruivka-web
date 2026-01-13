@@ -36,7 +36,7 @@ interface GameTableProps {
 }
 
 const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
-    const { myUserId, passTurn, nominatePlayer, voteForCandidate, startGame, clearInfoMessage, addBots, sendNightAction, setBotMessage, finalizeVoting, voteForBot, setNkvdPlan, endNight, appendDynamicPlan, leaveRoom } = useGame();
+    const { myUserId, passTurn, nominatePlayer, voteForCandidate, startGame, clearInfoMessage, addBots, sendNightAction, setBotMessage, finalizeVoting, voteForBot, endNight, appendDynamicPlan, leaveRoom } = useGame();
 
     const { isMuted, muteMic } = useVoice(room.roomId);
     const { width } = useWindowSize();
