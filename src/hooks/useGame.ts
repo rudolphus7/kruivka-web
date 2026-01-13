@@ -188,12 +188,38 @@ export const useGame = () => {
         if (killTarget) {
             if (killTarget === doctorTargetId) {
                 msg = "Лікар врятував життя цієї ночі!";
+                updates.lastHealedTarget = doctorTargetId; // Persist last healed
+                updates[`players/${killTarget}/alive`] = true; // Just to be explicit, though it wasn't set to false yet
             } else {
                 const vName = players.find(p => p.userId === killTarget)?.name || "...";
                 msg = `Вбито ${vName}. Працювали професіонали.`;
                 updates[`players/${killTarget}/alive`] = false;
-                wasNightKill = true;
+                updates.lastHealedTarget = null; // Reset if no one was healed (or different target) - actually, standard mafia rules say you just track who was LAST healed, regardless of kill. 
+                // Wait, if no heal happened, should we clear it? 
+                // If Doctor healed X, and Mafia killed Y:
+                // Rule: Doctor can't heal X again next night.
+                // So we should update lastHealedTarget to doctorTargetId regardless of save?
+                // Yes.
             }
+        }
+
+        // Actually, we must save doctorTargetId as lastHealedTarget if the doctor acted.
+        if (doctorTargetId) {
+            updates.lastHealedTarget = doctorTargetId;
+        } else {
+            // If doctor didn't act (dead or skipped), maybe clear it to allow healing anyone next time?
+            // Or keep previous? Usually clear.
+            updates.lastHealedTarget = null;
+        }
+
+        if (killTarget && killTarget !== doctorTargetId) {
+            const vName = players.find(p => p.userId === killTarget)?.name || "...";
+            msg = `Вбито ${vName}. Працювали професіонали.`;
+            updates[`players/${killTarget}/alive`] = false;
+            wasNightKill = true;
+        } else if (killTarget && killTarget === doctorTargetId) {
+            msg = "Лікар врятував життя цієї ночі!";
+            updates.wasNightKill = false;
         }
 
         updates.phase = "day_discussion";

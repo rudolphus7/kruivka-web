@@ -40,6 +40,7 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
 
     const [selectedForNomination, setSelectedForNomination] = useState<string | null>(null);
     const [nkvdSelection, setNkvdSelection] = useState<string[]>([]);
+    const [sheriffResult, setSheriffResult] = useState<{ name: string, isEnemy: boolean } | null>(null); // New state for Sheriff check result
     const [timeLeft, setTimeLeft] = useState(30);
     const [showShotAnimation, setShowShotAnimation] = useState(false);
 
@@ -139,6 +140,12 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
     const [rouletteIndex, setRouletteIndex] = useState(-1);
     const [selectedNightTarget, setSelectedNightTarget] = useState<string | null>(null);
     const [canShootNow, setCanShootNow] = useState(false);
+
+    // Reset Sheriff result on phase change
+    useEffect(() => {
+        setSheriffResult(null);
+        setSelectedNightTarget(null); // Also good to reset selection visual
+    }, [room.phase]);
 
     // --- NIGHT & ROULETTE AUTOMATION (HOST ONLY) ---
     const [hasRunRoulette, setHasRunRoulette] = useState(false);
@@ -285,6 +292,10 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
         if (room.phase === 'night' && myPlayer?.role === 'sheriff' && myPlayer?.alive && p.alive && p.userId !== myUserId) {
             setSelectedNightTarget(p.userId);
             sendNightAction(room.roomId, p.userId);
+
+            // Immediate feedback for Sheriff (Client-side check)
+            const isEnemy = p.role === 'mafia' || p.role === 'don';
+            setSheriffResult({ name: p.name, isEnemy });
         }
 
         if (isMyTurn && p.alive && p.userId !== myUserId) setSelectedForNomination(p.userId);
@@ -450,6 +461,11 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
                             <p className="text-xs text-green-500 text-center mt-1">
                                 Перевіряєте: {room.players[selectedNightTarget]?.name}
                             </p>
+                        )}
+                        {sheriffResult && (
+                            <div className={`mt-2 p-2 rounded text-center font-bold ${sheriffResult.isEnemy ? 'bg-red-900/80 text-red-200' : 'bg-green-900/80 text-green-200'}`}>
+                                РЕЗУЛЬТАТ: {sheriffResult.isEnemy ? "ВОРОГ (НКВС)" : "СВІЙ (ГРОМАДЯНИН)"}
+                            </div>
                         )}
                     </div>
                 )}
