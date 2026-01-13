@@ -375,6 +375,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
 
                                 votesReceived={voteCounts[p.userId] || 0}
                                 roleName={roleInfo.name}
+                                gameMode={room.gameMode || 'open'}
                                 onClick={() => handlePlayerClick(p)}
                             />
                         </div>

@@ -20,19 +20,20 @@ interface PlayerNodeProps {
     isNkvdTarget: boolean;
     votesReceived: number;
     roleName: string;
+    gameMode?: "open" | "closed"; // Added prop
     onClick: () => void;
 }
 
 const PlayerNode: React.FC<PlayerNodeProps> = ({
     player, isMe, isSpeaking, isRouletteTarget,
     isNominated, isSheriffChecked, isDoctorHealed, isMyTarget, isNkvdTarget,
-    votesReceived, roleName, onClick
+    votesReceived, roleName, gameMode = "open", onClick
 }) => {
-    // LOGIC: Show Face if: It's ME OR The player is DEAD.
-    // Show Back if: It's someone else AND they are ALIVE.
-    const showFace = isMe || !player.alive;
+    // LOGIC: Show Face if: It's ME OR (The player is DEAD AND Game Mode is OPEN).
+    // In Closed mode, dead players remain hidden (Back/Shirt).
+    const showFace = isMe || (!player.alive && gameMode === 'open');
 
-    // Visual highlights for the card container
+    // Visual highlights
     let borderClass = "border-transparent";
     if (isSpeaking) borderClass = "ring-4 ring-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.6)]";
     else if (isMyTarget) borderClass = "ring-4 ring-green-500 scale-105 shadow-[0_0_15px_green]";
@@ -72,7 +73,8 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
             >
 
                 {/* --- FRONT FACE (ROLE / INFO) --- */}
-                <div className={`absolute inset-0 w-full h-full backface-hidden bg-[#e0e0e0] border-2 border-gray-400 rounded-lg overflow-hidden flex flex-col ${borderClass}`}>
+                {/* FAILSAFE: opacity-0 when flipped to prevent "seeing through" the card */}
+                <div className={`absolute inset-0 w-full h-full backface-hidden bg-[#e0e0e0] border-2 border-gray-400 rounded-lg overflow-hidden flex flex-col ${borderClass} transition-opacity duration-300 ${showFace ? 'opacity-100 delay-100' : 'opacity-0'}`}>
 
                     {/* Role Image Area */}
                     <div className="relative flex-1 bg-black min-h-0">
@@ -81,6 +83,7 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
                         {!player.alive && (
                             <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
                                 <Skull size={40} className="text-white opacity-80" />
+                                {/* Only show "Eliminated" stamp if face is visible (i.e. open game or me) */}
                                 <div className="absolute inset-0 flex items-center justify-center rotate-[-25deg]">
                                     <span className="k-stamp red border-4 text-xs bg-white/50 px-2 py-1">ЛІКВІДОВАНО</span>
                                 </div>
@@ -88,21 +91,28 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
                         )}
                     </div>
 
-                    {/* Bottom Name Label - Increased padding and removed fixed height */}
+                    {/* Bottom Name Label */}
                     <div className="bg-[#d7ccc8] py-1.5 text-center border-t border-gray-500 shrink-0 flex items-center justify-center">
                         <p className="text-[11px] font-black text-[#3e2723] truncate px-1 leading-tight w-full">{player.name}</p>
                     </div>
                 </div>
 
                 {/* --- BACK FACE (CARD SHIRT) --- */}
-                <div className={`absolute inset-0 w-full h-full backface-hidden rounded-lg overflow-hidden border-2 border-[#3e2723] shadow-md bg-[#3e2723] ${borderClass}`}
-                    style={{ transform: 'rotateY(180deg)' }}> {/* Inline style for certainty */}
+                <div className={`absolute inset-0 w-full h-full backface-hidden rounded-lg overflow-hidden border-2 border-[#3e2723] shadow-md bg-[#3e2723] transition-opacity duration-300 ${!showFace ? 'opacity-100' : 'opacity-0 delay-100'} ${borderClass}`}
+                    style={{ transform: 'rotateY(180deg)' }}>
 
                     <img src={cardBack} alt="Card Back" className="w-full h-full object-cover" />
 
                     {/* Speaking Indicator on Back */}
                     {isSpeaking && (
                         <div className="absolute inset-0 border-4 border-yellow-400/50 animate-pulse rounded-lg pointer-events-none" />
+                    )}
+
+                    {/* Dead Indicator on Back (for Closed Game) */}
+                    {!player.alive && gameMode === 'closed' && (
+                        <div className="absolute inset-0 flex items-center justify-center z-20">
+                            <Skull size={40} className="text-white/50" />
+                        </div>
                     )}
 
                     {/* Name Label on Back */}
@@ -115,7 +125,7 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
 
             </div>
 
-            {/* STATUS BADGES (Front Side Logic) */}
+            {/* STATUS BADGES (Front Side Logic) - Only visible when Face is visible */}
             <div className={`absolute top-2 right-[-8px] flex flex-col gap-1 items-end pointer-events-none z-[60] transition-opacity duration-300 ${!showFace ? 'opacity-0' : 'opacity-100'}`}>
                 {votesReceived > 0 && (
                     <div className="bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-md border-2 border-white">
@@ -127,7 +137,7 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
                 {isDoctorHealed && <span className="k-stamp blue text-[8px] bg-green-100 shadow-sm">ЛІКУВАННЯ</span>}
             </div>
 
-            {/* MESSAGE BUBBLE */}
+            {/* MESSAGE BUBBLE - Always Visible */}
             {player.message && (
                 <div className="absolute -top-20 left-1/2 -translate-x-1/2 z-[100] w-max max-w-[150px]">
                     <div className="bg-[#fff9c4] text-black p-3 rounded-xl shadow-xl border-2 border-[#fbc02d] text-xs font-mono font-bold leading-tight relative animate-in zoom-in duration-200">
