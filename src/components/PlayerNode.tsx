@@ -27,7 +27,7 @@ interface PlayerNodeProps {
 const PlayerNode: React.FC<PlayerNodeProps> = ({
     player, isMe, isSpeaking, isRouletteTarget,
     isNominated, isSheriffChecked, isDoctorHealed, isMyTarget, isNkvdTarget,
-    votesReceived, roleColor, roleName, onClick
+    votesReceived, roleName, onClick
 }) => {
     // LOGIC: Show Face if: It's ME OR The player is DEAD.
     // Show Back if: It's someone else AND they are ALIVE.
