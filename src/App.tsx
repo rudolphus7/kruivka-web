@@ -5,7 +5,8 @@ import { useGame } from './hooks/useGame';
 
 // Переконайся, що шляхи до картинок правильні
 import lobbyBg from './assets/bg-lobby.png';
-import gameBg from './assets/bg-game.jpg';
+// Updated to new authentic table background
+import gameBg from './assets/bg-kruivka-table.png'; 
 
 function App() {
   const [screen, setScreen] = useState<'lobby' | 'table'>('lobby');
@@ -35,8 +36,8 @@ function App() {
   // Динамічні стилі для фону
   const backgroundStyle: CSSProperties = {
     backgroundImage: `url(${currentBg})`,
-    // Змінили 50% -> 55%
-    backgroundSize: isTableScreen ? '140% auto' : 'cover',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
   };
 
   return (
@@ -44,12 +45,12 @@ function App() {
       className="min-h-screen relative bg-black bg-center bg-no-repeat transition-all duration-700"
       style={backgroundStyle}
     >
-      {/* ВИПРАВЛЕНО ТУТ: backdrop-blur-[2px] перенесено всередину className */}
+      {/* Dim overlay: slightly darker for table to make UI pop */}
       <div
-        className={`absolute inset-0 transition-opacity duration-700 ${isTableScreen ? 'bg-black/80' : 'bg-black/60'} backdrop-blur-[2px]`}
+        className={`absolute inset-0 transition-opacity duration-700 ${isTableScreen ? 'bg-black/60' : 'bg-black/60'} backdrop-blur-[2px]`}
       />
 
-      <div className="relative z-10">
+      <div className="relative z-10 h-full">
         {screen === 'lobby' && (
           <Lobby onEnterRoom={handleEnterRoom} />
         )}
@@ -60,7 +61,7 @@ function App() {
 
         {!room && screen === 'table' && (
           <div className="flex items-center justify-center h-screen">
-            <p className="digital-text text-2xl">Підключення до системи...</p>
+            <p className="digital-text text-2xl">ВХІД У КРИЇВКУ...</p>
           </div>
         )}
       </div>

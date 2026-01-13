@@ -4,7 +4,7 @@ import { useGame } from '../hooks/useGame';
 import { useVoice } from '../hooks/useVoice';
 import PlayerNode from './PlayerNode';
 import { botSpeeches } from '../utils/botLogic';
-import { Radio, Clock, Mic, MicOff, LogOut, Play } from 'lucide-react';
+import { Mic, MicOff, LogOut } from 'lucide-react';
 import { ref, set } from 'firebase/database';
 import { database } from '../firebase';
 
@@ -334,238 +334,182 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
     }[room.phase] || room.phase.toUpperCase();
 
     return (
-        <div className={`w-full h-screen overflow-hidden flex flex-col items-center justify-center p-4 transition-colors duration-200 ${showShotAnimation ? 'bg-red-900/50' : ''}`}>
-            <div className="absolute w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] border-4 border-white/5 rounded-full" />
+        <div className={`theme-kruivka w-full h-screen overflow-hidden flex flex-col items-center justify-center p-4 transition-colors duration-200 ${showShotAnimation ? 'bg-red-900/40' : ''}`}>
+            {/* Dark overlay for mood */}
+            <div className="absolute inset-0 bg-black/30 pointer-events-none" />
 
-            {playersList.map((p, i) => {
-                const pos = POSITIONS[i] || { x: 50, y: 50 };
-                const roleInfo = getRoleInfo(p);
-                const globalIndex = allPlayersSorted.findIndex(pl => pl.userId === p.userId);
-                const currentNkvdTargetId = (room.nkvdPlan && room.planIndex !== undefined) ? room.nkvdPlan[room.planIndex] : null;
-                const isMeNKVD = myPlayer?.role === 'mafia' || myPlayer?.role === 'don';
-                const isCurrentNkvdTarget = isMeNKVD && p.userId === currentNkvdTargetId;
+            {/* Players Table Area */}
+            <div className="relative w-full h-full max-w-[800px] max-h-[600px] mx-auto mb-24">
+                {/* Table texture or centerpiece could go here */}
+                {playersList.map((p, i) => {
+                    const pos = POSITIONS[i] || { x: 50, y: 50 };
+                    const roleInfo = getRoleInfo(p);
+                    const globalIndex = allPlayersSorted.findIndex(pl => pl.userId === p.userId);
+                    const currentNkvdTargetId = (room.nkvdPlan && room.planIndex !== undefined) ? room.nkvdPlan[room.planIndex] : null;
+                    const isMeNKVD = myPlayer?.role === 'mafia' || myPlayer?.role === 'don';
+                    const isCurrentNkvdTarget = isMeNKVD && p.userId === currentNkvdTargetId;
 
-                return (
-                    <div
-                        key={p.userId}
-                        className="absolute transition-all duration-700"
-                        style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
-                    >
-                        <PlayerNode
-                            player={p}
-                            isMe={p.userId === myUserId}
-                            isSpeaking={room.phase === 'day_discussion' && globalIndex === room.speakerIndex}
-                            isRouletteTarget={globalIndex === rouletteIndex}
-                            isSelected={selectedForNomination === p.userId || candidatesList.includes(p.userId) || nkvdSelection.includes(p.userId) || selectedNightTarget === p.userId}
-                            isNkvdTarget={isCurrentNkvdTarget}
-                            votesReceived={voteCounts[p.userId] || 0}
-                            roleColor={roleInfo.color}
-                            roleName={roleInfo.name}
-                            onClick={() => handlePlayerClick(p)}
-                        />
-                    </div>
-                );
-            })}
-            {/* Dashboard / Status Header */}
-            <div className="absolute top-8 left-0 right-0 flex flex-col items-center">
-                <div className="flex gap-4 mb-2">
-                    <div className="bg-black/80 px-4 py-1 border border-white/10 rounded-full flex items-center gap-2">
-                        <span className="text-[10px] text-gray-500 font-bold tracking-widest uppercase">КОД:</span>
-                        <span className="text-[14px] text-amber-500 font-black font-mono tracking-[0.2em]">{room.roomId}</span>
-                    </div>
-                    <div className="bg-black/80 px-4 py-1 border border-white/10 rounded-full flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${isMuted ? 'bg-red-500' : 'bg-green-500'} animate-pulse`} />
-                        <span className="text-[10px] font-bold tracking-widest text-white uppercase">{statusText}</span>
-                    </div>
-                </div>
+                    // STATUS LOGIC
+                    const isNominated = candidatesList.includes(p.userId);
+                    const isSheriffChecked = myPlayer?.role === 'sheriff' && selectedNightTarget === p.userId; // Or previously checked? The UI currently shows *current* selection as "checked" for feedback.
+                    const isDoctorHealed = myPlayer?.role === 'doctor' && selectedNightTarget === p.userId;
+                    const isMyTarget = selectedNightTarget === p.userId || selectedForNomination === p.userId || nkvdSelection.includes(p.userId);
 
-                {room.dayNumber > 0 && (
-                    <div className="text-[8px] text-gray-500 tracking-[0.3em] font-bold mt-1">
-                        ДЕНЬ {room.dayNumber}
-                    </div>
-                )}
-            </div>
-
-            <div className="glass-card w-48 h-32 flex flex-col items-center justify-center text-center p-2 z-10">
-                <Radio className="text-[#c6ff00] mb-1" size={24} />
-                <p className="digital-text text-sm font-bold uppercase">
-                    {room.phase === 'day_discussion' ? `ЕФІР: ${currentSpeaker?.name}` : room.phase.replace('_', ' ')}
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                    <Clock size={14} className="text-[#c6ff00]/70" />
-                    <span className="text-[#c6ff00]/70 digital-text text-xs">ЧАС: {timeLeft}с</span>
-                </div>
-            </div>
-
-            <div className="absolute bottom-8 w-full max-w-md px-6 flex flex-col gap-3">
-                {room.status === 'lobby' && amIHost && (
-                    <>
-                        {playersList.length < 10 && (
-                            <button
-                                onClick={() => addBots(room.roomId, playersList)}
-                                className="btn-tactical w-full flex items-center justify-center gap-2 bg-blue-600 mb-2"
-                            >
-                                ДОДАТИ БОТІВ ({10 - playersList.length})
-                            </button>
-                        )}
-                        <button
-                            onClick={() => startGame(room.roomId, playersList)}
-                            disabled={playersList.length < 10}
-                            className={`btn-tactical w-full flex items-center justify-center gap-2 ${playersList.length < 10 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            style={{ backgroundColor: '#388E3C' }}
+                    return (
+                        <div
+                            key={p.userId}
+                            className="absolute transition-all duration-700"
+                            style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
                         >
-                            <Play size={20} /> ПОЧАТИ ОПЕРАЦІЮ
-                        </button>
-                    </>
-                )}
+                            <PlayerNode
+                                player={p}
+                                isMe={p.userId === myUserId}
+                                isSpeaking={room.phase === 'day_discussion' && globalIndex === room.speakerIndex}
+                                isRouletteTarget={globalIndex === rouletteIndex}
 
-                {room.phase === 'night_zero' && myPlayer?.role === 'don' && (
-                    <button
-                        onClick={() => setNkvdPlan(room.roomId, nkvdSelection)}
-                        disabled={nkvdSelection.length < 3}
-                        className={`btn-tactical w-full bg-red-800 ${nkvdSelection.length < 3 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                        ЗАТВЕРДИТИ ПЛАН ({nkvdSelection.length}/3)
-                    </button>
-                )}
+                                isNominated={isNominated}
+                                isSheriffChecked={isSheriffChecked}
+                                isDoctorHealed={isDoctorHealed}
+                                isMyTarget={isMyTarget}
+                                isNkvdTarget={isCurrentNkvdTarget}
 
-                {room.phase === 'night' && (myPlayer?.role === 'mafia' || myPlayer?.role === 'don') && myPlayer?.alive && (
-                    <div className="w-full space-y-2">
-                        <button
-                            onClick={() => {
-                                if (canShootNow) {
-                                    const currentTarget = room.nkvdPlan?.[room.planIndex];
-                                    if (currentTarget) {
-                                        handleShot(currentTarget); // Use handleShot for animation
-                                        setSelectedNightTarget(currentTarget);
-                                    }
-                                }
-                            }}
-                            disabled={!canShootNow}
-                            className={`btn-tactical w-full ${canShootNow ? 'bg-red-600 animate-pulse' : 'bg-gray-600 opacity-50 cursor-not-allowed'}`}
-                        >
-                            {canShootNow ? '🎯 ВИСТРІЛ ЗАРАЗ!' : '⏳ ЧЕКАЙТЕ РУЛЕТКУ...'}
-                        </button>
-                        {selectedNightTarget && (
-                            <p className="text-xs text-green-500 text-center">✓ Вистріл підтверджено</p>
-                        )}
-                    </div>
-                )}
-
-                {room.phase === 'night' && myPlayer?.role === 'doctor' && myPlayer?.alive && (
-                    <div className="w-full bg-black/60 p-3 rounded-lg border border-blue-500/30">
-                        <div className="text-xs text-center text-blue-400 mb-1">💉 ЛІКАР</div>
-                        <div className="text-xs text-center text-white">
-                            Лікування: {selectedNightTarget ? '0/1 ✓' : '1/1'}
+                                votesReceived={voteCounts[p.userId] || 0}
+                                roleColor={roleInfo.color}
+                                roleName={roleInfo.name}
+                                onClick={() => handlePlayerClick(p)}
+                            />
                         </div>
-                        {selectedNightTarget && (
-                            <p className="text-xs text-green-500 text-center mt-1">
-                                Лікуєте: {room.players[selectedNightTarget]?.name}
-                            </p>
-                        )}
-                        {room.lastHealedTarget && (
-                            <p className="text-xs text-yellow-500 text-center mt-1">
-                                ⚠️ Не можна: {room.players[room.lastHealedTarget]?.name}
-                            </p>
-                        )}
-                    </div>
-                )}
+                    );
+                })}
+            </div>
 
-                {room.phase === 'night' && myPlayer?.role === 'sheriff' && myPlayer?.alive && (
-                    <div className="w-full bg-black/60 p-3 rounded-lg border border-yellow-500/30">
-                        <div className="text-xs text-center text-yellow-400 mb-1">🔍 ШЕРИФ</div>
-                        <div className="text-xs text-center text-white">
-                            Перевірка: {selectedNightTarget ? '0/1 ✓' : '1/1'}
-                        </div>
-                        {selectedNightTarget && (
-                            <p className="text-xs text-green-500 text-center mt-1">
-                                Перевіряєте: {room.players[selectedNightTarget]?.name}
-                            </p>
-                        )}
-                        {sheriffResult && (
-                            <div className={`mt-2 p-2 rounded text-center font-bold ${sheriffResult.isEnemy ? 'bg-red-900/80 text-red-200' : 'bg-green-900/80 text-green-200'}`}>
-                                РЕЗУЛЬТАТ: {sheriffResult.isEnemy ? "ВОРОГ (НКВС)" : "СВІЙ (ГРОМАДЯНИН)"}
-                            </div>
-                        )}
+            {/* Top Status Bar (Paper Style) */}
+            <div className="absolute top-4 left-0 right-0 flex justify-center z-20">
+                <div className="bg-[#d7ccc8] border-2 border-[#5d4037] px-6 py-2 shadow-lg transform rotate-1 flex items-center gap-6">
+                    <div className="flex flex-col items-center">
+                        <span className="text-[10px] text-[#5d4037] font-bold tracking-widest uppercase">КАМЕРА</span>
+                        <span className="text-xl text-[#b71c1c] font-black font-mono">{room.roomId}</span>
                     </div>
-                )}
-
-                {isMyTurn && (
-                    <>
-                        {selectedForNomination && (
-                            <button
-                                onClick={() => {
-                                    nominatePlayer(room.roomId, myUserId, selectedForNomination, room.nominations || {});
-                                    setSelectedForNomination(null);
-                                }}
-                                className="btn-tactical w-full bg-red-600 mb-2"
-                            >
-                                ВИСУНУТИ {room.players[selectedForNomination].name}
-                            </button>
-                        )}
-                        <button
-                            onClick={() => passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.nominations || {}, room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0)}
-                            className="btn-tactical w-full bg-[#ffa000]"
-                        >
-                            КІНЕЦЬ ЗВ'ЯЗКУ
-                        </button>
-                    </>
-                )}
-
-                <div className="flex justify-between items-center bg-black/40 backdrop-blur-md p-3 rounded-2xl">
-                    <div className="flex items-center gap-3">
-                        {isMuted ? <MicOff className="text-red-500" /> : <Mic className="text-green-500 animate-pulse" />}
-                        <span className="text-[10px] font-bold tracking-widest">{isMuted ? "ЗВ'ЯЗОК ПЕРЕРВАНО" : "В ЕФІРІ"}</span>
+                    <div className="h-8 w-[2px] bg-[#5d4037]/30" />
+                    <div className="flex flex-col items-center">
+                        <span className="text-[10px] text-[#5d4037] font-bold tracking-widest uppercase">СТАТУС</span>
+                        <span className="text-sm font-bold text-[#3e2723]">{statusText}</span>
                     </div>
-                    <button
-                        onClick={() => {
-                            leaveRoom(room.roomId);
-                            onLeave();
-                        }}
-                        className="text-gray-400 hover:text-white transition"
-                        title="Вийти"
-                    >
-                        <LogOut size={20} />
-                    </button>
                 </div>
             </div>
 
+            {/* INFO MESSAGE / DOSSIER */}
             {room.infoMessage && !room.winner && (
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm px-4 animate-in fade-in zoom-in duration-300 z-50">
-                    <div className="bg-[#EFEBE9] border-2 border-black p-6 shadow-2xl relative">
-                        <div className="absolute -top-4 left-4 bg-red-600 text-white px-3 py-1 text-[10px] font-black">ТЕРМІНОВО</div>
-                        <h2 className="text-red-600 text-2xl font-black mb-4">ДОСЬЄ</h2>
-                        <p className="text-black font-bold text-center border-t border-black pt-4">{room.infoMessage}</p>
+                <div className="absolute top-24 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 animate-in fade-in zoom-in duration-300 z-30">
+                    <div className="bg-[#fff9c4] border border-[#fbc02d] p-4 shadow-xl transform -rotate-1 relative">
+                        <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-red-800 border-2 border-white flex items-center justify-center text-white font-bold text-xs shadow">!</div>
+                        <p className="text-[#3e2723] font-mono text-sm font-bold text-center">{room.infoMessage}</p>
                     </div>
                 </div>
             )}
-
+            {/* WARNING TOAST */}
             {warningMessage && (
-                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[70] animate-in slide-in-from-top duration-300">
-                    <div className="bg-red-600 text-white px-6 py-3 rounded-full shadow-lg border-2 border-white/20 font-bold text-sm flex items-center gap-2">
-                        <span>⚠️ {warningMessage}</span>
+                <div className="absolute top-40 left-1/2 -translate-x-1/2 z-[70] animate-in slide-in-from-top duration-300">
+                    <div className="bg-red-700 text-white px-6 py-2 shadow-lg border-2 border-white font-mono text-xs font-bold transform rotate-2">
+                        ПОМИЛКА: {warningMessage}
                     </div>
                 </div>
             )}
 
-            {/* Game Over Modal */}
+            {/* BOTTOM COMMAND DESK */}
+            <div className="kruivka-panel absolute bottom-0 left-0 right-0 p-4 pb-8 z-40 flex flex-col gap-3 items-center">
+
+                {/* TIMER CLOCK */}
+                <div className="absolute -top-6 bg-[#3e2723] text-[#ffcd38] border-2 border-[#5d4037] rounded-full w-20 h-20 flex flex-col items-center justify-center shadow-lg">
+                    <span className="text-[8px] opacity-70">ЧАС</span>
+                    <span className="text-2xl font-mono font-bold">{timeLeft}</span>
+                </div>
+
+                {/* PHASE INDICATOR */}
+                <div className="text-[#d7ccc8] text-xs font-mono tracking-widest mb-2 mt-4 uppercase">
+                    {room.phase === 'day_discussion' ? `ЕФІР: ${currentSpeaker?.name}` : room.phase.replace('_', ' ')}
+                </div>
+
+                {/* CONTROLS ROW */}
+                <div className="flex flex-wrap justify-center gap-3 w-full max-w-2xl">
+
+                    {/* HOST CONTROLS */}
+                    {room.status === 'lobby' && amIHost && (
+                        <>
+                            {playersList.length < 10 && (
+                                <button onClick={() => addBots(room.roomId, playersList)} className="btn-kruivka">
+                                    + БОТИ ({10 - playersList.length})
+                                </button>
+                            )}
+                            <button onClick={() => startGame(room.roomId, playersList)} disabled={playersList.length < 10} className="btn-kruivka primary">
+                                ПОЧАТИ ОПЕРАЦІЮ
+                            </button>
+                        </>
+                    )}
+
+                    {/* NIGHT ACTIONS */}
+                    {room.phase === 'night_zero' && myPlayer?.role === 'don' && (
+                        <button onClick={() => setNkvdPlan(room.roomId, nkvdSelection)} disabled={nkvdSelection.length < 3} className="btn-kruivka danger">
+                            ЗАТВЕРДИТИ ПЛАН ({nkvdSelection.length}/3)
+                        </button>
+                    )}
+                    {room.phase === 'night' && canShootNow && (
+                        <button onClick={() => {
+                            const target = room.nkvdPlan?.[room.planIndex];
+                            if (target) { handleShot(target); setSelectedNightTarget(target); }
+                        }} className="btn-kruivka danger animate-pulse">
+                            ВОГОНЬ!
+                        </button>
+                    )}
+                    {/* DAY ACTIONS */}
+                    {isMyTurn && (
+                        <>
+                            {selectedForNomination && (
+                                <button onClick={() => { nominatePlayer(room.roomId, myUserId, selectedForNomination, room.nominations || {}); setSelectedForNomination(null); }} className="btn-kruivka danger">
+                                    СУДИТИ {room.players[selectedForNomination].name}
+                                </button>
+                            )}
+                            <button onClick={() => passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.nominations || {}, room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0)} className="btn-kruivka primary">
+                                ПЕРЕДАТИ СЛОВО
+                            </button>
+                        </>
+                    )}
+
+                    {/* FOOTER ACTIONS (Mic/Exit) */}
+                    <div className="flex items-center gap-4 ml-4 pl-4 border-l border-[#8d6e63]">
+                        <button onClick={() => { isMuted ? muteMic(false) : muteMic(true) }} className="text-[#d7ccc8] hover:text-white transition flex flex-col items-center">
+                            {isMuted ? <MicOff size={20} className="text-red-400" /> : <Mic size={20} className="text-green-400" />}
+                        </button>
+                        <button onClick={() => { leaveRoom(room.roomId); onLeave(); }} className="text-[#d7ccc8] hover:text-white transition flex flex-col items-center" title="Вихід">
+                            <LogOut size={20} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* ROLE FEEDBACK PANEL (Sheriff/Doctor) */}
+                {(sheriffResult || (room.phase === 'night' && myPlayer?.role === 'doctor' && selectedNightTarget)) && (
+                    <div className="mt-2 bg-[#d7ccc8] text-[#3e2723] px-4 py-1 font-mono text-xs font-bold border border-[#5d4037] shadow-inner">
+                        {sheriffResult && `РЕЗУЛЬТАТ: ${sheriffResult.isEnemy ? "ВОРОГ" : "СВІЙ"}`}
+                        {myPlayer?.role === 'doctor' && selectedNightTarget && `ЛІКУВАННЯ: ${room.players[selectedNightTarget]?.name}`}
+                    </div>
+                )}
+            </div>
+
+            {/* Game Over Modal (Authentic) */}
             {room.status === 'finished' && (
-                <div className="absolute inset-0 bg-black/90 z-[60] flex flex-col items-center justify-center p-6 animate-in fade-in duration-1000">
-                    <div className="max-w-md w-full text-center space-y-8">
-                        <div className="space-y-2">
-                            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase glitch-text">
+                <div className="absolute inset-0 bg-[#3e2723]/95 z-[60] flex flex-col items-center justify-center p-6 animate-in fade-in duration-1000">
+                    <div className="max-w-md w-full text-center space-y-8 border-4 border-[#d7ccc8] p-8 bg-[url('/src/assets/bg-kruivka-table.png')] bg-cover relative">
+                        <div className="absolute inset-0 bg-black/60" /> {/* Dim bg image */}
+                        <div className="relative z-10">
+                            <h1 className="text-4xl font-black text-[#ffcd38] tracking-widest uppercase mb-2 drop-shadow-md">
                                 {room.winner === "UPA" ? "ПЕРЕМОГА УПА" : "ПЕРЕМОГА НКВС"}
                             </h1>
-                            <p className="text-xl text-gray-400 font-mono tracking-widest">
-                                {room.winner === "UPA" ? "ВОРОГІВ ЗНИЩЕНО" : "ПОВСТАННЯ ПРИДУШЕНО"}
-                            </p>
-                        </div>
+                            <div className="w-full h-1 bg-[#d7ccc8] mb-6" />
 
-                        <div className="p-6 border border-white/10 bg-white/5 rounded-2xl backdrop-blur-sm">
                             <PlayerNode
                                 player={{
                                     userId: "WINNER",
-                                    name: room.winner === "UPA" ? "СЛАВА УКРАЇНІ" : "РАДЯНСЬКА ВЛАДА",
+                                    name: room.winner === "UPA" ? "ГЕРОЇ" : "ЧЕКІСТИ",
                                     role: room.winner === "UPA" ? "civilian" : "don",
                                     alive: true,
                                     ready: true,
@@ -575,28 +519,19 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                                 isMe={false}
                                 isSpeaking={false}
                                 isRouletteTarget={false}
-                                isSelected={false}
+                                isNominated={false}
+                                isSheriffChecked={false}
+                                isDoctorHealed={false}
+                                isMyTarget={false}
                                 isNkvdTarget={false}
                                 votesReceived={0}
-                                roleColor={room.winner === "UPA" ? "#43A047" : "#D32F2F"}
-                                roleName={room.winner === "UPA" ? "ГЕРОЯМ СЛАВА" : "ОКУПАНТИ"}
+                                roleColor={room.winner === "UPA" ? "#4caff0" : "#d32f2f"}
+                                roleName={room.winner === "UPA" ? "УПА" : "НКВС"}
                                 onClick={() => { }}
                             />
-                            <div className="mt-4 text-sm text-gray-500">
-                                {room.infoMessage}
-                            </div>
-                        </div>
 
-                        <div className="flex flex-col gap-3 w-full max-w-xs mx-auto">
-                            <button
-                                onClick={() => {
-                                    leaveRoom(room.roomId);
-                                    onLeave();
-                                }}
-                                className="btn-tactical bg-gray-700 hover:bg-gray-600 w-full"
-                            >
-                                <LogOut className="inline mr-2" size={18} />
-                                ГОЛОВНЕ МЕНЮ
+                            <button onClick={() => { leaveRoom(room.roomId); onLeave(); }} className="btn-kruivka primary w-full mt-8 text-lg">
+                                ПОВЕРНУТИСЬ В ШТАБ
                             </button>
                         </div>
                     </div>
