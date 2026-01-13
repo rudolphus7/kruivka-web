@@ -77,22 +77,10 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
 
     // ...
 
-    {/* INFO MESSAGE - Minimalist Capsule */ }
-    {
-        showInfoToast && !room.winner && room.infoMessage && (
-            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-in fade-in slide-in-from-top-4 duration-300">
-                <div className="bg-black/60 backdrop-blur-md border border-[#8d6e63] px-6 py-2 rounded-full shadow-2xl flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-[#d7ccc8] font-mono text-xs font-bold tracking-wider uppercase text-center whitespace-nowrap">
-                        {room.infoMessage}
-                    </span>
-                </div>
-            </div>
-        )
-    }
     const playersList = useMemo(() => {
         const list = Object.values(room.players).sort((a, b) => a.userId.localeCompare(b.userId));
         const myIndex = list.findIndex(p => p.userId === myUserId);
+
         if (myIndex !== -1) {
             return [...list.slice(myIndex), ...list.slice(0, myIndex)];
         }
@@ -441,12 +429,14 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                 </div>
             )}
 
-            {/* INFO MESSAGE - MOVED HIGHER AND AUTO-HIDES */}
-            {showInfoToast && !room.winner && (
-                <div className="absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 animate-in fade-in zoom-in duration-300 z-50 pointer-events-none">
-                    <div className="bg-[#fff9c4]/90 backdrop-blur-sm border border-[#fbc02d] p-4 shadow-xl transform -rotate-1 relative rounded-lg">
-                        <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-red-800 border-2 border-white flex items-center justify-center text-white font-bold text-xs shadow">!</div>
-                        <p className="text-[#3e2723] font-mono text-sm font-bold text-center">{room.infoMessage}</p>
+            {/* INFO MESSAGE - Minimalist Capsule */}
+            {showInfoToast && !room.winner && room.infoMessage && (
+                <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="bg-black/60 backdrop-blur-md border border-[#8d6e63] px-6 py-2 rounded-full shadow-2xl flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        <span className="text-[#d7ccc8] font-mono text-xs font-bold tracking-wider uppercase text-center whitespace-nowrap">
+                            {room.infoMessage}
+                        </span>
                     </div>
                 </div>
             )}
