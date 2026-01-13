@@ -53,8 +53,43 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
     const [showShotAnimation, setShowShotAnimation] = useState(false);
     const [warningMessage, setWarningMessage] = useState<string | null>(null);
     const [showInfoToast, setShowInfoToast] = useState(false);
+    const lastMessageRef = React.useRef<string | null>(null);
 
-    // --- PLAYERS LIST ---
+    // ... (rest of hooks)
+
+    // FIXED: Only show toast when message CHANGES
+    useEffect(() => {
+        if (room.infoMessage && room.infoMessage !== lastMessageRef.current) {
+            lastMessageRef.current = room.infoMessage;
+            setShowInfoToast(true);
+            const timer = setTimeout(() => {
+                setShowInfoToast(false);
+                // We keep lastMessageRef set so it doesn't pop up again until it changes to something NEW
+            }, 3000);
+            return () => clearTimeout(timer);
+        } else if (!room.infoMessage) {
+            // If message is cleared on server, we can reset our ref to allow re-broadcast of same message if needed later?
+            // Or just leave it. better to reset if null.
+            lastMessageRef.current = null;
+            setShowInfoToast(false);
+        }
+    }, [room.infoMessage]);
+
+    // ...
+
+    {/* INFO MESSAGE - Minimalist Capsule */ }
+    {
+        showInfoToast && !room.winner && room.infoMessage && (
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="bg-black/60 backdrop-blur-md border border-[#8d6e63] px-6 py-2 rounded-full shadow-2xl flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-[#d7ccc8] font-mono text-xs font-bold tracking-wider uppercase text-center whitespace-nowrap">
+                        {room.infoMessage}
+                    </span>
+                </div>
+            </div>
+        )
+    }
     const playersList = useMemo(() => {
         const list = Object.values(room.players).sort((a, b) => a.userId.localeCompare(b.userId));
         const myIndex = list.findIndex(p => p.userId === myUserId);
