@@ -237,9 +237,9 @@ export const useGame = () => {
         if (killTarget && killTarget !== doctorTargetId) checkWinCondition(roomId, players, killTarget);
     };
 
-    const clearInfoMessage = (roomId: string) => {
+    const clearInfoMessage = useCallback((roomId: string) => {
         update(ref(database, `rooms/${roomId}`), { infoMessage: "" });
-    };
+    }, []);
 
     const nominatePlayer = async (roomId: string, nominatorId: string, targetId: string, currentNominations: Record<string, string>) => {
         // Enforce: One Player, One Nomination

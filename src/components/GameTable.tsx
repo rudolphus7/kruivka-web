@@ -15,9 +15,9 @@ const DESKTOP_POSITIONS = [
     { x: 30, y: 80 }, // 1 (Bottom Left)
     { x: 12, y: 60 }, // 2 (Left Lower)
     { x: 12, y: 40 }, // 3 (Left Upper)
-    { x: 30, y: 20 }, // 4 (Top Left)
-    { x: 50, y: 13 }, // 5 (Top Center)
-    { x: 70, y: 20 }, // 6 (Top Right)
+    { x: 22, y: 22 }, // 4 (Top Left) - WIDENED
+    { x: 50, y: 14 }, // 5 (Top Center)
+    { x: 78, y: 22 }, // 6 (Top Right) - WIDENED
     { x: 88, y: 40 }, // 7 (Right Upper)
     { x: 88, y: 60 }, // 8 (Right Lower)
     { x: 70, y: 80 }  // 9 (Bottom Right)
@@ -44,7 +44,7 @@ interface GameTableProps {
 }
 
 const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
-    const { myUserId, passTurn, nominatePlayer, voteForCandidate, startGame, clearInfoMessage, addBots, sendNightAction, setBotMessage, finalizeVoting, voteForBot, endNight, appendDynamicPlan, leaveRoom } = useGame();
+    const { myUserId, passTurn, nominatePlayer, voteForCandidate, startGame, clearInfoMessage, addBots, sendNightAction, setBotMessage, finalizeVoting, voteForBot, endNight, appendDynamicPlan, leaveRoom, setNkvdPlan } = useGame();
 
     const { isMuted, muteMic } = useVoice(room.roomId);
     const { width } = useWindowSize();
@@ -330,6 +330,12 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         }
 
         if (isMyTurn && p.alive && p.userId !== myUserId) setSelectedForNomination(p.userId);
+
+        // Allow Don/Mafia to select target during dynamic planning
+        if (room.phase === 'night_planning' && (myPlayer?.role === 'mafia' || myPlayer?.role === 'don') && p.alive && !['mafia', 'don'].includes(p.role)) {
+            setSelectedForNomination(p.userId); // Re-using this state variable for simplicity as it stores a single ID
+        }
+
         if (room.phase === 'day_voting' && candidatesList.includes(p.userId) && myPlayer?.alive) voteForCandidate(room.roomId, p.userId);
     };
 
@@ -472,6 +478,35 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
                                 ПОЧАТИ
                             </button>
                         </>
+                    )}
+
+                    {/* NIGHT ZERO: Plan Approval for Don/Mafia */}
+                    {room.phase === 'night_zero' && (myPlayer?.role === 'don' || myPlayer?.role === 'mafia') && (
+                        <button
+                            disabled={nkvdSelection.length !== 3}
+                            onClick={() => setNkvdPlan(room.roomId, nkvdSelection)}
+                            className={`btn-kruivka danger text-sm px-6 transition-all duration-100 ${nkvdSelection.length === 3 ? 'animate-pulse scale-110 opacity-100' : 'opacity-50 grayscale'}`}
+                        >
+                            ЗАТВЕРДИТИ ПЛАН ({nkvdSelection.length}/3)
+                        </button>
+                    )}
+
+                    {/* NIGHT PLANNING: Dynamic Selection */}
+                    {room.phase === 'night_planning' && (myPlayer?.role === 'don' || myPlayer?.role === 'mafia') && (
+                        <button
+                            disabled={!selectedForNomination} // Re-using this state temp or better create new? 
+                            // Wait, handlePlayerClick sets selectedForNomination only if isMyTurn...
+                            // logic needs fix in handlePlayerClick for night_planning
+                            onClick={() => {
+                                if (selectedForNomination) {
+                                    appendDynamicPlan(room.roomId, selectedForNomination, room.nkvdPlan || []);
+                                    setSelectedForNomination(null);
+                                }
+                            }}
+                            className={`btn-kruivka danger text-sm px-6 transition-all duration-100 ${selectedForNomination ? 'animate-pulse scale-110 opacity-100' : 'opacity-50 grayscale'}`}
+                        >
+                            ПРИЗНАЧИТИ ЦІЛЬ
+                        </button>
                     )}
 
                     {room.phase === 'night' && (myPlayer?.role === 'mafia' || myPlayer?.role === 'don') && (
