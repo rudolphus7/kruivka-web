@@ -223,3 +223,19 @@ body {
   border-top: 4px solid #8d6e63;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
 }
+
+/* 3D Card Flip Utilities */
+.perspective-1000 {
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}

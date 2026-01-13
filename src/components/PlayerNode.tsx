@@ -20,7 +20,7 @@ interface PlayerNodeProps {
     isNkvdTarget: boolean;
     votesReceived: number;
     roleName: string;
-    gameMode?: "open" | "closed"; // Added prop
+    gameMode?: "open" | "closed";
     onClick: () => void;
 }
 
@@ -33,11 +33,12 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
     // In Closed mode, dead players remain hidden (Back/Shirt).
     const showFace = isMe || (!player.alive && gameMode === 'open');
 
-    // Visual highlights
-    let borderClass = "border-transparent";
-    if (isSpeaking) borderClass = "ring-4 ring-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.6)]";
-    else if (isMyTarget) borderClass = "ring-4 ring-green-500 scale-105 shadow-[0_0_15px_green]";
-    else if (isRouletteTarget) borderClass = "ring-4 ring-red-600 animate-pulse";
+    // Visual highlights - MOVED TO SEPARATE DIV
+    // We construct the class string for the overlay, NOT the faces
+    let highlightClass = "border-transparent";
+    if (isSpeaking) highlightClass = "ring-4 ring-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.6)] z-30";
+    else if (isMyTarget) highlightClass = "ring-4 ring-green-500 scale-105 shadow-[0_0_15px_green] z-30";
+    else if (isRouletteTarget) highlightClass = "ring-4 ring-red-600 animate-pulse z-30";
 
     // Role Image Mapping
     const getRoleImage = (role?: string) => {
@@ -66,6 +67,10 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
                 </div>
             )}
 
+            {/* HIGHLIGHT OVERLAY - Separated from faces to prevent opacity conflicts */}
+            {/* This div sits on top of the card and handles borders/pulse */}
+            <div className={`absolute inset-0 rounded-lg pointer-events-none transition-all duration-300 ${highlightClass}`}></div>
+
             {/* FLIPPING CONTAINER */}
             <div
                 className="w-full h-full relative transition-transform duration-700 transform-style-3d"
@@ -74,7 +79,8 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
 
                 {/* --- FRONT FACE (ROLE / INFO) --- */}
                 {/* FAILSAFE: opacity-0 when flipped to prevent "seeing through" the card */}
-                <div className={`absolute inset-0 w-full h-full backface-hidden bg-[#e0e0e0] border-2 border-gray-400 rounded-lg overflow-hidden flex flex-col ${borderClass} transition-opacity duration-300 ${showFace ? 'opacity-100 delay-100' : 'opacity-0'}`}>
+                {/* Removed borderClass from here to avoid animate-pulse affecting opacity */}
+                <div className={`absolute inset-0 w-full h-full backface-hidden bg-[#e0e0e0] border-2 border-gray-400 rounded-lg overflow-hidden flex flex-col transition-opacity duration-300 ${showFace ? 'opacity-100 delay-100' : 'opacity-0'}`}>
 
                     {/* Role Image Area */}
                     <div className="relative flex-1 bg-black min-h-0">
@@ -98,15 +104,13 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
                 </div>
 
                 {/* --- BACK FACE (CARD SHIRT) --- */}
-                <div className={`absolute inset-0 w-full h-full backface-hidden rounded-lg overflow-hidden border-2 border-[#3e2723] shadow-md bg-[#3e2723] transition-opacity duration-300 ${!showFace ? 'opacity-100' : 'opacity-0 delay-100'} ${borderClass}`}
+                {/* Removed borderClass from here too */}
+                <div className={`absolute inset-0 w-full h-full backface-hidden rounded-lg overflow-hidden border-2 border-[#3e2723] shadow-md bg-[#3e2723] transition-opacity duration-300 ${!showFace ? 'opacity-100' : 'opacity-0 delay-100'}`}
                     style={{ transform: 'rotateY(180deg)' }}>
 
                     <img src={cardBack} alt="Card Back" className="w-full h-full object-cover" />
 
-                    {/* Speaking Indicator on Back */}
-                    {isSpeaking && (
-                        <div className="absolute inset-0 border-4 border-yellow-400/50 animate-pulse rounded-lg pointer-events-none" />
-                    )}
+                    {/* Speaking Indicator on Back (Inner Pulse if needed, but outer ring handles main pulse) */}
 
                     {/* Dead Indicator on Back (for Closed Game) */}
                     {!player.alive && gameMode === 'closed' && (
