@@ -6,7 +6,7 @@ import { useGame } from './hooks/useGame';
 // Переконайся, що шляхи до картинок правильні
 import lobbyBg from './assets/bg-lobby.png';
 // Updated to new authentic table background
-import gameBg from './assets/bg-kruivka-table.png'; 
+import gameBg from './assets/bg-game.jpg';
 
 function App() {
   const [screen, setScreen] = useState<'lobby' | 'table'>('lobby');
