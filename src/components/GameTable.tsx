@@ -16,9 +16,10 @@ const POSITIONS = [
 
 interface GameTableProps {
     room: GameRoom;
+    onLeave: () => void;
 }
 
-const GameTable: React.FC<GameTableProps> = ({ room }) => {
+const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
     const { myUserId, passTurn, nominatePlayer, voteForCandidate, startGame, clearInfoMessage, addBots, sendNightAction, setBotMessage, finalizeVoting, voteForBot, setNkvdPlan, endNight, appendDynamicPlan, leaveRoom } = useGame();
     // --- ВСТАВИТИ ЦЕЙ БЛОК КОДУ ---
 
@@ -269,6 +270,15 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
         }
     };
 
+    const [warningMessage, setWarningMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (warningMessage) {
+            const timer = setTimeout(() => setWarningMessage(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [warningMessage]);
+
     const handlePlayerClick = (p: Player) => {
         if (room.phase === 'night_zero' && myPlayer?.role === 'don' && p.userId !== myUserId) {
             if (nkvdSelection.includes(p.userId)) {
@@ -278,10 +288,17 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
             }
         }
 
+        // Night Action Limits Check
+        const hasActed = room.nightActions && room.nightActions[myUserId];
+
         // Doctor healing during night
         if (room.phase === 'night' && myPlayer?.role === 'doctor' && myPlayer?.alive && p.alive) {
+            if (hasActed) {
+                setWarningMessage("Ви вже лікували цієї ночі!");
+                return;
+            }
             if (p.userId === room.lastHealedTarget) {
-                // Can't heal same player twice in a row
+                setWarningMessage("Не можна лікувати одного й того ж гравця двічі поспіль!");
                 return;
             }
             setSelectedNightTarget(p.userId);
@@ -290,6 +307,10 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
 
         // Sheriff check during night
         if (room.phase === 'night' && myPlayer?.role === 'sheriff' && myPlayer?.alive && p.alive && p.userId !== myUserId) {
+            if (hasActed || sheriffResult) {
+                setWarningMessage("Ви вже перевіряли гравця цієї ночі!");
+                return;
+            }
             setSelectedNightTarget(p.userId);
             sendNightAction(room.roomId, p.userId);
 
@@ -300,7 +321,6 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
 
         if (isMyTurn && p.alive && p.userId !== myUserId) setSelectedForNomination(p.userId);
         if (room.phase === 'day_voting' && candidatesList.includes(p.userId) && myPlayer?.alive) voteForCandidate(room.roomId, p.userId);
-        // Removed click-to-shoot for NKVD. Now only button works.
     };
 
     const statusText = {
@@ -498,7 +518,10 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
                         <span className="text-[10px] font-bold tracking-widest">{isMuted ? "ЗВ'ЯЗОК ПЕРЕРВАНО" : "В ЕФІРІ"}</span>
                     </div>
                     <button
-                        onClick={() => leaveRoom(room.roomId)}
+                        onClick={() => {
+                            leaveRoom(room.roomId);
+                            onLeave();
+                        }}
                         className="text-gray-400 hover:text-white transition"
                         title="Вийти"
                     >
@@ -513,6 +536,14 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
                         <div className="absolute -top-4 left-4 bg-red-600 text-white px-3 py-1 text-[10px] font-black">ТЕРМІНОВО</div>
                         <h2 className="text-red-600 text-2xl font-black mb-4">ДОСЬЄ</h2>
                         <p className="text-black font-bold text-center border-t border-black pt-4">{room.infoMessage}</p>
+                    </div>
+                </div>
+            )}
+
+            {warningMessage && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[70] animate-in slide-in-from-top duration-300">
+                    <div className="bg-red-600 text-white px-6 py-3 rounded-full shadow-lg border-2 border-white/20 font-bold text-sm flex items-center gap-2">
+                        <span>⚠️ {warningMessage}</span>
                     </div>
                 </div>
             )}
@@ -558,7 +589,10 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
 
                         <div className="flex flex-col gap-3 w-full max-w-xs mx-auto">
                             <button
-                                onClick={() => leaveRoom(room.roomId)}
+                                onClick={() => {
+                                    leaveRoom(room.roomId);
+                                    onLeave();
+                                }}
                                 className="btn-tactical bg-gray-700 hover:bg-gray-600 w-full"
                             >
                                 <LogOut className="inline mr-2" size={18} />

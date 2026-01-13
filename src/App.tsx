@@ -24,6 +24,11 @@ function App() {
     setScreen('table');
   };
 
+  const handleLeaveRoom = () => {
+    setScreen('lobby');
+    setCurrentRoomId(null);
+  };
+
   const isTableScreen = screen === 'table';
   const currentBg = isTableScreen ? gameBg : lobbyBg;
 
@@ -50,7 +55,7 @@ function App() {
         )}
 
         {screen === 'table' && room && (
-          <GameTable room={room} />
+          <GameTable room={room} onLeave={handleLeaveRoom} />
         )}
 
         {!room && screen === 'table' && (
