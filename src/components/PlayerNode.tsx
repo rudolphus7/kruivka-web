@@ -63,7 +63,7 @@ const PlayerNode: React.FC<PlayerNodeProps> = ({
                 {/* NAME LABEL (Handwritten style) */}
                 <div className="mt-1 text-center">
                     <p className="text-[10px] font-bold text-black font-mono leading-tight truncate w-14">
-                        {player.name}
+                        {player.name} ???
                     </p>
                     {isMe && <p className="text-[8px] text-gray-600">(ВИ)</p>}
                 </div>
