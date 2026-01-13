@@ -9,11 +9,18 @@ import { ref, set } from 'firebase/database';
 import { database } from '../firebase';
 import { useWindowSize } from '../hooks/useWindowSize';
 
-// Desktop: Wide Oval
+// Desktop: Wide Oval (Symmetrical 10-player layout)
 const DESKTOP_POSITIONS = [
-    { x: 50, y: 85 }, { x: 25, y: 75 }, { x: 10, y: 50 }, { x: 25, y: 25 },
-    { x: 40, y: 15 }, { x: 60, y: 15 }, { x: 75, y: 25 }, { x: 90, y: 50 },
-    { x: 75, y: 75 }, { x: 60, y: 85 }
+    { x: 50, y: 88 }, // 0 (Me/Bottom Center)
+    { x: 30, y: 80 }, // 1 (Bottom Left)
+    { x: 12, y: 60 }, // 2 (Left Lower)
+    { x: 12, y: 40 }, // 3 (Left Upper)
+    { x: 30, y: 20 }, // 4 (Top Left)
+    { x: 50, y: 13 }, // 5 (Top Center)
+    { x: 70, y: 20 }, // 6 (Top Right)
+    { x: 88, y: 40 }, // 7 (Right Upper)
+    { x: 88, y: 60 }, // 8 (Right Lower)
+    { x: 70, y: 80 }  // 9 (Bottom Right)
 ];
 
 // Mobile: Scaled Oval (Compressed to Safe Zone)
@@ -53,27 +60,22 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
     const [showShotAnimation, setShowShotAnimation] = useState(false);
     const [warningMessage, setWarningMessage] = useState<string | null>(null);
     const [showInfoToast, setShowInfoToast] = useState(false);
-    const lastMessageRef = React.useRef<string | null>(null);
 
     // ... (rest of hooks)
 
-    // FIXED: Only show toast when message CHANGES
+    // FIXED: Single reliable effect for info message
     useEffect(() => {
-        if (room.infoMessage && room.infoMessage !== lastMessageRef.current) {
-            lastMessageRef.current = room.infoMessage;
+        if (room.infoMessage) {
             setShowInfoToast(true);
             const timer = setTimeout(() => {
                 setShowInfoToast(false);
-                // We keep lastMessageRef set so it doesn't pop up again until it changes to something NEW
+                clearInfoMessage(room.roomId);
             }, 3000);
             return () => clearTimeout(timer);
-        } else if (!room.infoMessage) {
-            // If message is cleared on server, we can reset our ref to allow re-broadcast of same message if needed later?
-            // Or just leave it. better to reset if null.
-            lastMessageRef.current = null;
+        } else {
             setShowInfoToast(false);
         }
-    }, [room.infoMessage]);
+    }, [room.infoMessage, room.roomId, clearInfoMessage]);
 
     // ...
 
@@ -244,19 +246,7 @@ const GameTable: React.FC<GameTableProps> = ({ room, onLeave }) => {
         else muteMic(true);
     }, [isMyTurn, muteMic]);
 
-    // FIXED: Local state for immediate info message handling (3s)
-    useEffect(() => {
-        if (room.infoMessage) {
-            setShowInfoToast(true);
-            const timer = setTimeout(() => {
-                setShowInfoToast(false);
-                clearInfoMessage(room.roomId);
-            }, 3000);
-            return () => clearTimeout(timer);
-        } else {
-            setShowInfoToast(false);
-        }
-    }, [room.infoMessage, room.roomId, clearInfoMessage]);
+
 
     // --- WARNING TOAST ---
     useEffect(() => {
