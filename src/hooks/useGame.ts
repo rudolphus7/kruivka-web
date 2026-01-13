@@ -51,7 +51,7 @@ export const useGame = () => {
             planIndex: 0,
             nightActions: {},
             speakerIndex: 0,
-            candidates: [],
+            nominations: {},
             votes: {},
             wasNightKill: false
         };
@@ -212,9 +212,10 @@ export const useGame = () => {
         update(ref(database, `rooms/${roomId}`), { infoMessage: "" });
     };
 
-    const nominatePlayer = async (roomId: string, targetId: string, currentCandidates: string[]) => {
-        if (!currentCandidates.includes(targetId)) {
-            await set(ref(database, `rooms/${roomId}/candidates`), [...currentCandidates, targetId]);
+    const nominatePlayer = async (roomId: string, nominatorId: string, targetId: string, currentNominations: Record<string, string>) => {
+        // Enforce: One Player, One Nomination
+        if (!currentNominations || !currentNominations[nominatorId]) {
+            await set(ref(database, `rooms/${roomId}/nominations/${nominatorId}`), targetId);
         }
     };
 
@@ -226,7 +227,7 @@ export const useGame = () => {
         await set(ref(database, `rooms/${roomId}/nightActions/${myUserId}`), targetId);
     };
 
-    const passTurn = async (roomId: string, currentSpeakerIndex: number, playersSorted: Player[], candidates: string[], wasNightKill: boolean, planIndex: number, nkvdPlanSize: number) => {
+    const passTurn = async (roomId: string, currentSpeakerIndex: number, playersSorted: Player[], nominations: Record<string, string>, wasNightKill: boolean, planIndex: number, nkvdPlanSize: number) => {
         // Clear messages
         const playersRef = ref(database, `rooms/${roomId}/players`);
         const snapshot = await get(playersRef);
@@ -247,7 +248,8 @@ export const useGame = () => {
         }
 
         if (nextIndex >= totalPlayers) {
-            if (wasNightKill && candidates.length > 0) {
+            const candidatesList = nominations ? Array.from(new Set(Object.values(nominations))) : [];
+            if (wasNightKill && candidatesList.length > 0) {
                 await update(ref(database, `rooms/${roomId}`), { phase: 'day_voting', votes: null, infoMessage: "Голосування!" });
             } else {
                 const info = !wasNightKill ? "Вбивства не було. Суд скасовано." : "Нікого не висунули. Всім спати.";
@@ -259,7 +261,8 @@ export const useGame = () => {
         }
     };
 
-    const finalizeVoting = async (roomId: string, players: Player[], candidates: string[], planIndex: number, nkvdPlanSize: number) => {
+    const finalizeVoting = async (roomId: string, players: Player[], nominations: Record<string, string>, planIndex: number, nkvdPlanSize: number) => {
+        const candidates = nominations ? Array.from(new Set(Object.values(nominations))) : [];
         const votesRef = ref(database, `rooms/${roomId}/votes`);
         const snapshot = await get(votesRef);
         const rawVotes = snapshot.val() || {};
@@ -295,7 +298,7 @@ export const useGame = () => {
         const nextPhase = planIndex >= nkvdPlanSize ? "night_planning" : "night";
         await update(ref(database, `rooms/${roomId}`), {
             phase: nextPhase,
-            candidates: null,
+            nominations: null,
             votes: null,
             speakerIndex: 0,
             infoMessage: msg

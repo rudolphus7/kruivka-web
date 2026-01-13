@@ -28,7 +28,7 @@ export interface GameRoom {
   nightActions: Record<string, string>;
   speakerIndex: number;
   lastHealedTarget?: string;
-  candidates: string[];
+  nominations: Record<string, string>; // nominatorId -> candidateId
   votes: Record<string, string>;
   wasNightKill: boolean;
 }

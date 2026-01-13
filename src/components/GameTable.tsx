@@ -60,6 +60,9 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
     const amIHost = room.hostId === myUserId;
     const currentSpeaker = allPlayersSorted[room.speakerIndex];
     const isMyTurn = room.phase === 'day_discussion' && currentSpeaker?.userId === myUserId;
+    const candidatesList = useMemo(() => {
+        return room.nominations ? Array.from(new Set(Object.values(room.nominations))) : [];
+    }, [room.nominations]);
 
     // Timer & Auto-pass for Host
     useEffect(() => {
@@ -80,17 +83,20 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
         // 1. Day Discussion Bot Logic
         if (room.phase === 'day_discussion') {
             if (timeLeft <= 0 || (currentSpeaker && !currentSpeaker.alive)) {
-                passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.candidates || [], room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0);
+                passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.nominations || {}, room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0);
             } else if (currentSpeaker?.userId.startsWith('BOT') && currentSpeaker.alive) {
                 if (timeLeft === 28) {
-                    const isCandidate = (room.candidates || []).includes(currentSpeaker.userId);
-                    const shouldNominate = !isCandidate && room.wasNightKill && Math.random() < 0.15;
+                    const isCandidate = candidatesList.includes(currentSpeaker.userId);
+                    // Bot nominates only if it hasn't nominated yet AND there's a night kill
+                    const hasNominated = room.nominations && room.nominations[currentSpeaker.userId];
+                    const shouldNominate = !hasNominated && !isCandidate && room.wasNightKill && Math.random() < 0.4; // Increased prob slightly
 
                     if (shouldNominate) {
-                        const potentialTargets = allPlayersSorted.filter(p => p.userId !== currentSpeaker.userId && p.alive);
-                        const target = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
+                        const potentialTargets = allPlayersSorted.filter(p => p.userId !== currentSpeaker.userId && p.alive && !candidatesList.includes(p.userId));
+                        const target = potentialTargets.length > 0 ? potentialTargets[Math.floor(Math.random() * potentialTargets.length)] : null;
+
                         if (target) {
-                            nominatePlayer(room.roomId, target.userId, room.candidates || []);
+                            nominatePlayer(room.roomId, currentSpeaker.userId, target.userId, room.nominations || {});
                             setBotMessage(room.roomId, currentSpeaker.userId, botSpeeches.nomination(target.name));
                         }
                     } else {
@@ -99,7 +105,7 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
                     }
                 }
                 if (timeLeft === 25) {
-                    passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.candidates || [], room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0);
+                    passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.nominations || {}, room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0);
                 }
             }
         }
@@ -108,19 +114,27 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
         if (room.phase === 'day_voting') {
             const timer = setTimeout(() => {
                 allPlayersSorted.forEach(p => {
-                    if (p.userId.startsWith('BOT') && p.alive && (room.candidates || []).length > 0) {
-                        const others = room.candidates.filter(c => c !== p.userId);
-                        const choice = others.length > 0 ? others[Math.floor(Math.random() * others.length)] : room.candidates[0];
-                        voteForBot(room.roomId, p.userId, choice);
+                    if (p.userId.startsWith('BOT') && p.alive && candidatesList.length > 0) {
+                        // Filter out self from voting candidates
+                        const availableCandidates = candidatesList.filter(c => c !== p.userId);
+                        // If only candidate is self, or no candidates (shouldn't happen), vote for first available or self if must
+                        const choice = availableCandidates.length > 0
+                            ? availableCandidates[Math.floor(Math.random() * availableCandidates.length)]
+                            : candidatesList[0]; // Fallback, but logic shouldn't reach here if we want to avoid strict self-vote
+
+                        // Strict rule: Bots never vote for themselves if possible. If only selection IS themselves, they might have to, but with >1 candidates it's avoidable.
+                        if (choice) {
+                            voteForBot(room.roomId, p.userId, choice);
+                        }
                     }
                 });
                 setTimeout(() => {
-                    finalizeVoting(room.roomId, allPlayersSorted, room.candidates || [], room.planIndex, room.nkvdPlan?.length || 0);
+                    finalizeVoting(room.roomId, allPlayersSorted, room.nominations || {}, room.planIndex, room.nkvdPlan?.length || 0);
                 }, 3000);
             }, 5000);
             return () => clearTimeout(timer);
         }
-    }, [timeLeft, amIHost, room.phase, room.roomId, room.speakerIndex, allPlayersSorted, room.candidates, room.wasNightKill, room.planIndex, room.nkvdPlan?.length, passTurn, currentSpeaker, nominatePlayer, setBotMessage, voteForBot, finalizeVoting]);
+    }, [timeLeft, amIHost, room.phase, room.roomId, room.speakerIndex, allPlayersSorted, candidatesList, room.nominations, room.wasNightKill, room.planIndex, room.nkvdPlan?.length, passTurn, currentSpeaker, nominatePlayer, setBotMessage, voteForBot, finalizeVoting]);
 
     const [rouletteIndex, setRouletteIndex] = useState(-1);
     const [selectedNightTarget, setSelectedNightTarget] = useState<string | null>(null);
@@ -274,7 +288,7 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
         }
 
         if (isMyTurn && p.alive && p.userId !== myUserId) setSelectedForNomination(p.userId);
-        if (room.phase === 'day_voting' && (room.candidates || []).includes(p.userId) && myPlayer?.alive) voteForCandidate(room.roomId, p.userId);
+        if (room.phase === 'day_voting' && candidatesList.includes(p.userId) && myPlayer?.alive) voteForCandidate(room.roomId, p.userId);
         if (room.phase === 'night' && (myPlayer?.role === 'mafia' || myPlayer?.role === 'don')) {
             handleShot(p.userId);
             setSelectedNightTarget(p.userId);
@@ -314,7 +328,7 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
                             isMe={p.userId === myUserId}
                             isSpeaking={room.phase === 'day_discussion' && globalIndex === room.speakerIndex}
                             isRouletteTarget={globalIndex === rouletteIndex}
-                            isSelected={selectedForNomination === p.userId || (room.candidates || []).includes(p.userId) || nkvdSelection.includes(p.userId) || selectedNightTarget === p.userId}
+                            isSelected={selectedForNomination === p.userId || candidatesList.includes(p.userId) || nkvdSelection.includes(p.userId) || selectedNightTarget === p.userId}
                             isNkvdTarget={isCurrentNkvdTarget}
                             votesReceived={voteCounts[p.userId] || 0}
                             roleColor={roleInfo.color}
@@ -448,7 +462,7 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
                         {selectedForNomination && (
                             <button
                                 onClick={() => {
-                                    nominatePlayer(room.roomId, selectedForNomination, room.candidates || []);
+                                    nominatePlayer(room.roomId, myUserId, selectedForNomination, room.nominations || {});
                                     setSelectedForNomination(null);
                                 }}
                                 className="btn-tactical w-full bg-red-600 mb-2"
@@ -457,7 +471,7 @@ const GameTable: React.FC<GameTableProps> = ({ room }) => {
                             </button>
                         )}
                         <button
-                            onClick={() => passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.candidates || [], room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0)}
+                            onClick={() => passTurn(room.roomId, room.speakerIndex, allPlayersSorted, room.nominations || {}, room.wasNightKill, room.planIndex, room.nkvdPlan?.length || 0)}
                             className="btn-tactical w-full bg-[#ffa000]"
                         >
                             КІНЕЦЬ ЗВ'ЯЗКУ
